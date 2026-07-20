@@ -188,9 +188,9 @@ class AgentDetailViewModel(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isFollowUpSending = true)
             try {
-                val run = apiClient.service.createRun(agentId, CreateRunRequest(PromptInput(prompt)))
+                val response = apiClient.service.createRun(agentId, CreateRunRequest(PromptInput(prompt)))
                 _uiState.value = _uiState.value.copy(isFollowUpSending = false)
-                startStreaming(run.id)
+                startStreaming(response.run.id)
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isFollowUpSending = false,

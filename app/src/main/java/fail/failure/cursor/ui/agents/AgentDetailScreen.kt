@@ -127,11 +127,9 @@ fun AgentDetailScreen(
             if (state.isLoading) {
                 CircularProgressIndicator(modifier = Modifier.padding(24.dp))
             } else {
-                state.gitInfo?.let { git ->
-                    if (!git.prUrls.isNullOrEmpty() || !git.branches.isNullOrEmpty()) {
-                        GitInfoCard(prUrl = git.prUrls?.firstOrNull(), branch = git.branches?.firstOrNull()) { url ->
-                            CustomTabsIntent.Builder().build().launchUrl(context, url.toUri())
-                        }
+                state.gitInfo?.branches?.firstOrNull()?.let { gitBranch ->
+                    GitInfoCard(prUrl = gitBranch.prUrl, branch = gitBranch.branch) { url ->
+                        CustomTabsIntent.Builder().build().launchUrl(context, url.toUri())
                     }
                 }
 

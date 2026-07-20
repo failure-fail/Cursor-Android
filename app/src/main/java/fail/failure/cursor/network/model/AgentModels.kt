@@ -111,10 +111,19 @@ data class AgentListResponse(
     @SerialName("nextCursor") val cursor: String? = null,
 )
 
+/** Confirmed live against `GET /v1/agents/{id}/runs/{runId}`: `git` is a single object with a
+ * `branches` array of `{repoUrl, branch, prUrl}` triples, not two parallel string lists like an
+ * earlier version guessed. */
+@Serializable
+data class GitBranch(
+    val repoUrl: String? = null,
+    val branch: String? = null,
+    val prUrl: String? = null,
+)
+
 @Serializable
 data class GitInfo(
-    val branches: List<String>? = null,
-    @SerialName("prUrls") val prUrls: List<String>? = null,
+    val branches: List<GitBranch>? = null,
 )
 
 @Serializable
@@ -129,9 +138,16 @@ data class Run(
 
 @Serializable
 data class RunListResponse(
-    val runs: List<Run> = emptyList(),
-    val cursor: String? = null,
+    @SerialName("items") val runs: List<Run> = emptyList(),
+    @SerialName("nextCursor") val cursor: String? = null,
 )
+
+/** `POST /v1/agents/{id}/runs` wraps its response as `{"run": {...}}` - unlike `GET` on the same
+ * resource, which returns the run bare. Decoding the bare `Run` shape directly against this
+ * response failed with "Fields [id, status] ... missing at path: $", since the top-level object
+ * only has a `run` key. */
+@Serializable
+data class CreateRunResponse(val run: Run)
 
 @Serializable
 data class CreateRunRequest(

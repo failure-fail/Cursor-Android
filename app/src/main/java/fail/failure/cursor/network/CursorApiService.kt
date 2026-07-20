@@ -9,6 +9,7 @@ import fail.failure.cursor.network.model.ArtifactListResponse
 import fail.failure.cursor.network.model.CreateAgentRequest
 import fail.failure.cursor.network.model.CreateAgentResponse
 import fail.failure.cursor.network.model.CreateRunRequest
+import fail.failure.cursor.network.model.CreateRunResponse
 import fail.failure.cursor.network.model.ModelListResponse
 import fail.failure.cursor.network.model.RepositoryListResponse
 import fail.failure.cursor.network.model.Run
@@ -46,7 +47,7 @@ interface CursorApiService {
     suspend fun getAgent(@Path("id") id: String): Agent
 
     @POST("v1/agents/{id}/runs")
-    suspend fun createRun(@Path("id") id: String, @Body request: CreateRunRequest): Run
+    suspend fun createRun(@Path("id") id: String, @Body request: CreateRunRequest): CreateRunResponse
 
     @GET("v1/agents/{id}/runs")
     suspend fun listRuns(@Path("id") id: String, @Query("limit") limit: Int = 50): RunListResponse
