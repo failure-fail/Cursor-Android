@@ -51,7 +51,7 @@ private object Routes {
 }
 
 @Composable
-fun CursorNavHost(app: CursorApp, requestedDestination: String? = null) {
+fun CursorNavHost(app: CursorApp, requestedDestination: String? = null, requestedAgentId: String? = null) {
     val navController: NavHostController = rememberNavController()
     val authViewModel: AuthViewModel = viewModel(
         factory = LambdaViewModelFactory { AuthViewModel(app.authRepository) },
@@ -62,9 +62,12 @@ fun CursorNavHost(app: CursorApp, requestedDestination: String? = null) {
         else -> Routes.LOGIN
     }
 
-    LaunchedEffect(requestedDestination) {
-        if (requestedDestination == "new_agent" && app.authRepository.isSignedIn()) {
-            navController.navigate(Routes.NEW_AGENT)
+    LaunchedEffect(requestedDestination, requestedAgentId) {
+        if (!app.authRepository.isSignedIn()) return@LaunchedEffect
+        when {
+            requestedDestination == "new_agent" -> navController.navigate(Routes.NEW_AGENT)
+            requestedDestination == "open_agent" && requestedAgentId != null ->
+                navController.navigate(Routes.agentDetail(requestedAgentId))
         }
     }
 

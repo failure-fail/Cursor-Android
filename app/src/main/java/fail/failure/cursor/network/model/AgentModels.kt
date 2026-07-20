@@ -97,6 +97,7 @@ data class Agent(
     val repos: List<RepoInput>? = null,
     @SerialName("autoCreatePR") val autoCreatePr: Boolean? = null,
     @SerialName("createdAt") val createdAt: String? = null,
+    @SerialName("updatedAt") val updatedAt: String? = null,
     val archived: Boolean? = null,
     val env: EnvInput? = null,
     /** The cursor.com web dashboard link for this agent - confirmed present on `GET /v1/agents/{id}`. */

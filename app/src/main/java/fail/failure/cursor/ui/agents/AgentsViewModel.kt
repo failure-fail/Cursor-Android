@@ -28,19 +28,15 @@ data class AgentsUiState(
     val apiKeyError: String? = null,
     val error: String? = null,
     val searchQuery: String = "",
-    /** Lowercase status, or null for "All". */
-    val statusFilter: String? = null,
     val sortOrder: AgentSortOrder = AgentSortOrder.NEWEST,
     val pinnedIds: Set<String> = emptySet(),
 ) {
     val filteredAgents: List<Agent>
         get() {
             val filtered = agents.filter { agent ->
-                val matchesQuery = searchQuery.isBlank() ||
+                searchQuery.isBlank() ||
                     (agent.name ?: agent.id).contains(searchQuery, ignoreCase = true) ||
                     agent.repos?.firstOrNull()?.url?.contains(searchQuery, ignoreCase = true) == true
-                val matchesStatus = statusFilter == null || agent.status?.lowercase() == statusFilter
-                matchesQuery && matchesStatus
             }
             val sorted = when (sortOrder) {
                 AgentSortOrder.NEWEST -> filtered.sortedByDescending { it.createdAt?.let(::parseInstantOrNull) }
@@ -111,10 +107,6 @@ class AgentsViewModel(
 
     fun updateSearchQuery(query: String) {
         _uiState.value = _uiState.value.copy(searchQuery = query)
-    }
-
-    fun updateStatusFilter(status: String?) {
-        _uiState.value = _uiState.value.copy(statusFilter = status)
     }
 
     fun updateSortOrder(order: AgentSortOrder) {

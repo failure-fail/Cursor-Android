@@ -50,8 +50,6 @@ import fail.failure.cursor.ui.components.AgentCard
 import fail.failure.cursor.ui.components.AgentCardSkeleton
 import fail.failure.cursor.ui.components.AmbientBackground
 import fail.failure.cursor.ui.components.ApiKeyRequiredCard
-import fail.failure.cursor.ui.components.SegmentOption
-import fail.failure.cursor.ui.components.SegmentedToggle
 import fail.failure.cursor.ui.components.StaggeredItem
 import fail.failure.cursor.ui.theme.CursorAccent
 import fail.failure.cursor.ui.theme.CursorBackground
@@ -59,15 +57,6 @@ import fail.failure.cursor.ui.theme.CursorError
 import fail.failure.cursor.ui.theme.CursorTextFieldShape
 import fail.failure.cursor.ui.theme.CursorTextSecondary
 import fail.failure.cursor.ui.theme.cursorFilledTextFieldColors
-
-private const val STATUS_ALL = "all"
-
-private val statusFilters = listOf(
-    STATUS_ALL to "All",
-    "running" to "Running",
-    "finished" to "Finished",
-    "error" to "Failed",
-)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -132,13 +121,6 @@ fun AgentListScreen(
                     colors = cursorFilledTextFieldColors(),
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
                 )
-                SegmentedToggle(
-                    options = statusFilters.map { (value, label) -> SegmentOption(value, label) },
-                    selectedId = state.statusFilter ?: STATUS_ALL,
-                    onSelect = { id -> viewModel.updateStatusFilter(if (id == STATUS_ALL) null else id) },
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                )
-                Spacer(modifier = Modifier.padding(top = 4.dp))
             }
 
             PullToRefreshBox(

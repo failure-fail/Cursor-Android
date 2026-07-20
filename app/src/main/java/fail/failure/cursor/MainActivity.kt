@@ -24,9 +24,10 @@ class MainActivity : ComponentActivity() {
         requestNotificationPermissionIfNeeded()
         val app = application as CursorApp
         val requestedDestination = intent?.getStringExtra(WidgetNavigation.DESTINATION_KEY.name)
+        val requestedAgentId = intent?.getStringExtra(WidgetNavigation.AGENT_ID_KEY.name)
         setContent {
             CursorAndroidTheme {
-                CursorNavHost(app = app, requestedDestination = requestedDestination)
+                CursorNavHost(app = app, requestedDestination = requestedDestination, requestedAgentId = requestedAgentId)
             }
         }
     }
