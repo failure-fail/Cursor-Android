@@ -98,7 +98,7 @@ class AgentsViewModel(
                     } else {
                         null
                     },
-                    error = if (unauthorized) null else e.message ?: "Failed to load agents",
+                    error = if (unauthorized) null else e.cursorApiErrorMessage() ?: e.message ?: "Failed to load agents",
                 )
             }
         }
@@ -137,7 +137,10 @@ class AgentsViewModel(
             try {
                 apiClient.service.archiveAgent(agentId)
             } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(agents = previousAgents, error = e.message ?: "Failed to archive")
+                _uiState.value = _uiState.value.copy(
+                    agents = previousAgents,
+                    error = e.cursorApiErrorMessage() ?: e.message ?: "Failed to archive",
+                )
             }
         }
     }

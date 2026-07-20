@@ -56,7 +56,9 @@ import fail.failure.cursor.ui.components.StaggeredItem
 import fail.failure.cursor.ui.theme.CursorAccent
 import fail.failure.cursor.ui.theme.CursorBackground
 import fail.failure.cursor.ui.theme.CursorError
+import fail.failure.cursor.ui.theme.CursorFilterChipShape
 import fail.failure.cursor.ui.theme.CursorTextFieldShape
+import fail.failure.cursor.ui.theme.cursorFilterChipColors
 import fail.failure.cursor.ui.theme.CursorTextSecondary
 import fail.failure.cursor.ui.theme.cursorFilledTextFieldColors
 
@@ -139,6 +141,8 @@ fun AgentListScreen(
                             selected = state.statusFilter == value,
                             onClick = { viewModel.updateStatusFilter(value) },
                             label = { Text(label) },
+                            shape = CursorFilterChipShape,
+                            colors = cursorFilterChipColors(),
                         )
                     }
                 }

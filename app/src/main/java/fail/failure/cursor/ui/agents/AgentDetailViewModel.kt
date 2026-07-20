@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import fail.failure.cursor.network.ApiClient
+import fail.failure.cursor.network.cursorApiErrorMessage
 import fail.failure.cursor.network.model.Agent
 import fail.failure.cursor.network.model.CreateRunRequest
 import fail.failure.cursor.network.model.GitInfo
@@ -16,6 +17,18 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import retrofit2.HttpException
+
+/** Prefers the server's own error message (e.g. Cursor's `{"error":{"message":...}}` body) over a
+ * raw "HTTP 409"-style string, with a 409-specific fallback for the one case actually seen in
+ * practice: trying to send a follow-up while a run is still active. */
+private fun Throwable.friendlyMessage(fallback: String): String {
+    cursorApiErrorMessage()?.let { return it }
+    if (this is HttpException && code() == 409) {
+        return "This agent already has an active run - wait for it to finish before sending a follow-up."
+    }
+    return message ?: fallback
+}
 
 /** One line of the on-screen transcript for the currently streamed run. */
 sealed interface TranscriptLine {
@@ -63,7 +76,7 @@ class AgentDetailViewModel(
                 _uiState.value = _uiState.value.copy(agent = agent, isLoading = false)
                 agent.latestRunId?.let { startStreaming(it) }
             } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(isLoading = false, error = e.message ?: "Failed to load agent")
+                _uiState.value = _uiState.value.copy(isLoading = false, error = e.friendlyMessage("Failed to load agent"))
             }
         }
     }
@@ -153,7 +166,7 @@ class AgentDetailViewModel(
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isLoadingHistory = false,
-                    error = e.message ?: "Failed to load run history",
+                    error = e.friendlyMessage("Failed to load run history"),
                 )
             }
         }
@@ -167,7 +180,7 @@ class AgentDetailViewModel(
                 apiClient.service.cancelRun(agentId, runId)
                 _uiState.value = _uiState.value.copy(isActionRunning = false, runStatus = "cancelled")
             } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(isActionRunning = false, error = e.message ?: "Failed to cancel")
+                _uiState.value = _uiState.value.copy(isActionRunning = false, error = e.friendlyMessage("Failed to cancel"))
             }
         }
     }
@@ -183,7 +196,7 @@ class AgentDetailViewModel(
                 apiClient.service.deleteAgent(agentId)
                 onDeleted()
             } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(isActionRunning = false, error = e.message ?: "Failed to delete")
+                _uiState.value = _uiState.value.copy(isActionRunning = false, error = e.friendlyMessage("Failed to delete"))
             }
         }
     }
@@ -196,7 +209,7 @@ class AgentDetailViewModel(
                 _uiState.value = _uiState.value.copy(isActionRunning = false)
                 load()
             } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(isActionRunning = false, error = e.message ?: "Action failed")
+                _uiState.value = _uiState.value.copy(isActionRunning = false, error = e.friendlyMessage("Action failed"))
             }
         }
     }
@@ -212,7 +225,7 @@ class AgentDetailViewModel(
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isFollowUpSending = false,
-                    error = e.message ?: "Failed to send follow-up",
+                    error = e.friendlyMessage("Failed to send follow-up"),
                 )
             }
         }

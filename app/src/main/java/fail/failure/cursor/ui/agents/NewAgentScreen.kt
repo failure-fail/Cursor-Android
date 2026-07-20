@@ -60,9 +60,11 @@ import fail.failure.cursor.ui.components.ApiKeyRequiredCard
 import fail.failure.cursor.ui.components.GlowButton
 import fail.failure.cursor.ui.components.SegmentOption
 import fail.failure.cursor.ui.components.SegmentedToggle
+import fail.failure.cursor.ui.theme.CursorFilterChipShape
 import fail.failure.cursor.ui.theme.CursorTextFieldShape
 import fail.failure.cursor.ui.theme.CursorTextSecondary
 import fail.failure.cursor.ui.theme.cursorFilledTextFieldColors
+import fail.failure.cursor.ui.theme.cursorFilterChipColors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
@@ -136,6 +138,8 @@ fun NewAgentScreen(
                                     selected = state.selectedModel == model,
                                     onClick = { viewModel.selectModel(model) },
                                     label = { Text(model.displayName ?: model.id) },
+                                    shape = CursorFilterChipShape,
+                                    colors = cursorFilterChipColors(),
                                 )
                             }
                         }
@@ -151,6 +155,8 @@ fun NewAgentScreen(
                                         selected = state.selectedModelParams[param.id] == valueOption.value,
                                         onClick = { viewModel.selectModelParam(param.id, valueOption.value) },
                                         label = { Text(valueOption.displayName ?: valueOption.value) },
+                                        shape = CursorFilterChipShape,
+                                        colors = cursorFilterChipColors(),
                                     )
                                 }
                             }
@@ -167,6 +173,8 @@ fun NewAgentScreen(
                                 selected = false,
                                 onClick = { viewModel.updatePrompt(template.prompt) },
                                 label = { Text("${template.emoji} ${template.label}") },
+                                shape = CursorFilterChipShape,
+                                colors = cursorFilterChipColors(),
                             )
                         }
                     }

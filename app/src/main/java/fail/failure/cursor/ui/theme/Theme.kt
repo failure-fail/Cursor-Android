@@ -31,6 +31,13 @@ val CursorDiffRemoved = Color(0xFFFF3B5C)
 private val CursorColorScheme = darkColorScheme(
     primary = CursorAccent,
     onPrimary = Color.White,
+    // Left unset, these fall back to Material's stock dark-theme indigo/purple - visible as an
+    // out-of-place blue "All" filter chip, since FilterChip's selected state reads
+    // secondaryContainer by default, not primary.
+    secondary = CursorAccent,
+    onSecondary = Color.White,
+    secondaryContainer = CursorAccent,
+    onSecondaryContainer = Color.White,
     background = CursorBackground,
     onBackground = CursorTextPrimary,
     surface = CursorSurface,

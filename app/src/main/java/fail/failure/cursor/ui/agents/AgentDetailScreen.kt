@@ -3,6 +3,7 @@ package fail.failure.cursor.ui.agents
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Intent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -10,18 +11,22 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
@@ -49,6 +54,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.browser.customtabs.CustomTabsIntent
 import androidx.core.net.toUri
@@ -56,11 +62,14 @@ import fail.failure.cursor.network.model.Run
 import fail.failure.cursor.ui.components.GlassCard
 import fail.failure.cursor.ui.components.MarkdownText
 import fail.failure.cursor.ui.components.PillInputBar
+import fail.failure.cursor.ui.components.PulsingDot
 import fail.failure.cursor.ui.components.StatusBadge
-import fail.failure.cursor.ui.components.ThinkingIndicator
+import fail.failure.cursor.ui.components.statusColor
 import fail.failure.cursor.ui.theme.CursorAccent
 import fail.failure.cursor.ui.theme.CursorAccentSecondary
+import fail.failure.cursor.ui.theme.CursorSuccess
 import fail.failure.cursor.ui.theme.CursorSurface
+import fail.failure.cursor.ui.theme.CursorSurfaceRaised
 import fail.failure.cursor.ui.theme.CursorTextSecondary
 import androidx.compose.ui.graphics.Brush
 
@@ -190,7 +199,7 @@ fun AgentDetailScreen(
                         contentPadding = PaddingValues(16.dp),
                         verticalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
-                        items(state.transcript) { line -> TranscriptLineView(line) }
+                        items(groupTranscript(state.transcript)) { item -> TranscriptDisplayItemView(item) }
                     }
                 }
 
@@ -314,17 +323,53 @@ private fun GitInfoCard(prUrl: String?, branch: String?, onOpen: (String) -> Uni
     }
 }
 
+/** What the transcript actually renders as, one step up from the raw [TranscriptLine] feed: runs
+ * of thinking/tool-call activity are folded into a single collapsed live-progress row instead of
+ * each one being its own permanently-visible line, with the full step-by-step detail underneath
+ * only shown once expanded. Assistant replies and system notes stay as their own top-level items. */
+private sealed interface TranscriptDisplayItem {
+    data class Single(val line: TranscriptLine) : TranscriptDisplayItem
+    data class ActivityGroup(val lines: List<TranscriptLine>) : TranscriptDisplayItem
+}
+
+private fun groupTranscript(transcript: List<TranscriptLine>): List<TranscriptDisplayItem> {
+    val result = mutableListOf<TranscriptDisplayItem>()
+    var buffer = mutableListOf<TranscriptLine>()
+    fun flush() {
+        if (buffer.isNotEmpty()) {
+            result.add(TranscriptDisplayItem.ActivityGroup(buffer))
+            buffer = mutableListOf()
+        }
+    }
+    transcript.forEach { line ->
+        when (line) {
+            is TranscriptLine.Thinking, is TranscriptLine.Tool -> buffer.add(line)
+            else -> {
+                flush()
+                result.add(TranscriptDisplayItem.Single(line))
+            }
+        }
+    }
+    flush()
+    return result
+}
+
+@Composable
+private fun TranscriptDisplayItemView(item: TranscriptDisplayItem) {
+    when (item) {
+        is TranscriptDisplayItem.Single -> TranscriptLineView(item.line)
+        is TranscriptDisplayItem.ActivityGroup -> ActivityGroupView(item.lines)
+    }
+}
+
 @Composable
 private fun TranscriptLineView(line: TranscriptLine) {
     when (line) {
         is TranscriptLine.Assistant -> BubbleText(line.text, CursorSurface)
-        is TranscriptLine.Thinking -> Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            ThinkingIndicator()
-            androidx.compose.runtime.CompositionLocalProvider(
-                androidx.compose.material3.LocalContentColor provides CursorTextSecondary,
-            ) {
-                MarkdownText(line.text)
-            }
+        is TranscriptLine.Thinking -> androidx.compose.runtime.CompositionLocalProvider(
+            androidx.compose.material3.LocalContentColor provides CursorTextSecondary,
+        ) {
+            MarkdownText(line.text)
         }
         is TranscriptLine.Tool -> Text(
             "🔧 ${line.name} — ${line.status}",
@@ -336,6 +381,70 @@ private fun TranscriptLineView(line: TranscriptLine) {
             color = CursorTextSecondary,
             style = MaterialTheme.typography.labelSmall,
         )
+    }
+}
+
+/** Collapsed by default, showing just the latest step as a live "progress message" (a pulsing dot
+ * while it's still running, a checkmark once it isn't) - tap to expand the full run of thinking
+ * and tool-call steps underneath it, in order. */
+@Composable
+private fun ActivityGroupView(lines: List<TranscriptLine>) {
+    var expanded by remember { mutableStateOf(false) }
+    val last = lines.last()
+    val isRunning = when (last) {
+        is TranscriptLine.Tool -> last.status.lowercase() in setOf("running", "pending", "started", "in_progress")
+        is TranscriptLine.Thinking -> true
+        else -> false
+    }
+    val summary = when (last) {
+        is TranscriptLine.Thinking -> "💭 Thinking…"
+        is TranscriptLine.Tool -> "🔧 ${last.name} — ${last.status}"
+        else -> ""
+    }
+    val summaryColor = if (last is TranscriptLine.Tool) statusColor(last.status) else CursorTextSecondary
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(CursorSurfaceRaised.copy(alpha = 0.6f), RoundedCornerShape(12.dp))
+            .clickable { expanded = !expanded }
+            .padding(10.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+            if (isRunning) {
+                PulsingDot(color = CursorAccent, active = true, size = 8.dp)
+            } else {
+                PulsingDot(color = CursorSuccess, active = false, size = 8.dp)
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                summary,
+                color = summaryColor,
+                style = MaterialTheme.typography.labelSmall,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
+            Text(
+                "${lines.size} step${if (lines.size == 1) "" else "s"}",
+                color = CursorTextSecondary,
+                style = MaterialTheme.typography.labelSmall,
+                modifier = Modifier.padding(end = 4.dp),
+            )
+            Icon(
+                if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+                contentDescription = if (expanded) "Collapse" else "Expand",
+                tint = CursorTextSecondary,
+            )
+        }
+        AnimatedVisibility(visible = expanded) {
+            Column(
+                modifier = Modifier.padding(top = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                lines.forEach { line -> TranscriptLineView(line) }
+            }
+        }
     }
 }
 

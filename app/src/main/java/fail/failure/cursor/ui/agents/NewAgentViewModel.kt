@@ -90,7 +90,7 @@ class NewAgentViewModel(
                     } else {
                         null
                     },
-                    error = if (unauthorized) null else e.message ?: "Failed to load repositories/models",
+                    error = if (unauthorized) null else e.cursorApiErrorMessage() ?: e.message ?: "Failed to load repositories/models",
                 )
             }
         }
@@ -214,7 +214,7 @@ class NewAgentViewModel(
                     isSubmitting = false,
                     needsApiKey = unauthorized,
                     apiKeyError = if (unauthorized) e.cursorApiErrorMessage() else null,
-                    error = if (unauthorized) null else e.message ?: "Failed to create agent",
+                    error = if (unauthorized) null else e.cursorApiErrorMessage() ?: e.message ?: "Failed to create agent",
                 )
             }
         }
