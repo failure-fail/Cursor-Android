@@ -22,10 +22,29 @@ android {
         manifestPlaceholders["authRedirectHost"] = "auth-callback"
     }
 
+    // CI provides a keystore via env vars for tagged releases; local `assembleRelease` builds
+    // fall back to the auto-generated debug key so the build never fails for lack of a keystore.
+    val releaseStoreFile = System.getenv("RELEASE_STORE_FILE")
+    signingConfigs {
+        if (releaseStoreFile != null) {
+            create("release") {
+                storeFile = file(releaseStoreFile)
+                storePassword = System.getenv("RELEASE_STORE_PASSWORD")
+                keyAlias = System.getenv("RELEASE_KEY_ALIAS")
+                keyPassword = System.getenv("RELEASE_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            signingConfig = if (releaseStoreFile != null) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
         }
         debug {
             isMinifyEnabled = false
@@ -70,7 +89,6 @@ dependencies {
 
     implementation(libs.androidx.browser)
     implementation(libs.androidx.security.crypto)
-    implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.glance.appwidget)
     implementation(libs.androidx.glance.material3)
     implementation(libs.androidx.work.runtime.ktx)

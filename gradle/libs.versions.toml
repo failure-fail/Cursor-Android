@@ -14,7 +14,6 @@ securityCrypto = "1.1.0-alpha06"
 glance = "1.1.0"
 workManager = "2.9.1"
 coroutines = "1.9.0"
-datastore = "1.1.1"
 coil = "2.7.0"
 
 [libraries]
@@ -33,7 +32,6 @@ androidx-material3 = { group = "androidx.compose.material3", name = "material3" 
 androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigationCompose" }
 androidx-browser = { group = "androidx.browser", name = "browser", version.ref = "browser" }
 androidx-security-crypto = { group = "androidx.security", name = "security-crypto", version.ref = "securityCrypto" }
-androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
 androidx-glance-appwidget = { group = "androidx.glance", name = "glance-appwidget", version.ref = "glance" }
 androidx-glance-material3 = { group = "androidx.glance", name = "glance-material3", version.ref = "glance" }
 androidx-work-runtime-ktx = { group = "androidx.work", name = "work-runtime-ktx", version.ref = "workManager" }

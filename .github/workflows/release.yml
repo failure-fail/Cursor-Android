@@ -1,0 +1,54 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Generate a release-signing key for this build
+        # Self-signed: this is an unofficial community client, not distributed through a store,
+        # so there's no shared upload key to protect. Each tagged release gets a fresh key, which
+        # means in-place upgrades between releases will prompt an uninstall/reinstall on Android
+        # (signature mismatch) - acceptable for now; switch to a persistent secret-backed keystore
+        # if that becomes a problem.
+        run: |
+          keytool -genkeypair -v \
+            -keystore release.keystore \
+            -alias release \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -storepass "${{ github.run_id }}" \
+            -keypass "${{ github.run_id }}" \
+            -dname "CN=CursorAndroid, OU=CursorAndroid, O=CursorAndroid, L=NA, ST=NA, C=US"
+
+      - name: Build release APK
+        env:
+          RELEASE_STORE_FILE: ${{ github.workspace }}/release.keystore
+          RELEASE_STORE_PASSWORD: ${{ github.run_id }}
+          RELEASE_KEY_ALIAS: release
+          RELEASE_KEY_PASSWORD: ${{ github.run_id }}
+        run: ./gradlew :app:assembleRelease
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ github.ref_name }}" \
+            app/build/outputs/apk/release/app-release.apk \
+            --title "${{ github.ref_name }}" \
+            --generate-notes
