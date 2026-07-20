@@ -21,6 +21,21 @@ data class StoredSession(
     val apiKey: String? = null,
 )
 
+/**
+ * A browser login that's been started (uuid/verifier/challenge sent to cursor.com) but not yet
+ * confirmed complete. Persisted rather than kept only in the ViewModel because a real login -
+ * typing a password, a 2FA code, switching apps to check email - can easily outlast the process:
+ * Android may reclaim the backgrounded app while the Custom Tab has focus. Without this, the
+ * in-memory poll loop just vanishes and the user comes back to what looks like a reset screen
+ * with no sign anything was ever attempted.
+ */
+data class PendingChallenge(
+    val uuid: String,
+    val verifier: String,
+    val challenge: String,
+    val createdAtMillis: Long,
+)
+
 class TokenStore(context: Context) {
 
     private val prefs: SharedPreferences = run {
@@ -70,10 +85,40 @@ class TokenStore(context: Context) {
         return !s.accessToken.isNullOrBlank() || !s.apiKey.isNullOrBlank()
     }
 
+    fun savePendingChallenge(uuid: String, verifier: String, challenge: String, createdAtMillis: Long) {
+        prefs.edit()
+            .putString(KEY_PENDING_UUID, uuid)
+            .putString(KEY_PENDING_VERIFIER, verifier)
+            .putString(KEY_PENDING_CHALLENGE, challenge)
+            .putLong(KEY_PENDING_CREATED_AT, createdAtMillis)
+            .apply()
+    }
+
+    fun readPendingChallenge(): PendingChallenge? {
+        val uuid = prefs.getString(KEY_PENDING_UUID, null) ?: return null
+        val verifier = prefs.getString(KEY_PENDING_VERIFIER, null) ?: return null
+        val challenge = prefs.getString(KEY_PENDING_CHALLENGE, null) ?: return null
+        val createdAt = prefs.getLong(KEY_PENDING_CREATED_AT, 0L)
+        return PendingChallenge(uuid, verifier, challenge, createdAt)
+    }
+
+    fun clearPendingChallenge() {
+        prefs.edit()
+            .remove(KEY_PENDING_UUID)
+            .remove(KEY_PENDING_VERIFIER)
+            .remove(KEY_PENDING_CHALLENGE)
+            .remove(KEY_PENDING_CREATED_AT)
+            .apply()
+    }
+
     companion object {
         private const val KEY_ACCESS_TOKEN = "access_token"
         private const val KEY_REFRESH_TOKEN = "refresh_token"
         private const val KEY_USER_ID = "user_id"
         private const val KEY_API_KEY = "api_key"
+        private const val KEY_PENDING_UUID = "pending_uuid"
+        private const val KEY_PENDING_VERIFIER = "pending_verifier"
+        private const val KEY_PENDING_CHALLENGE = "pending_challenge"
+        private const val KEY_PENDING_CREATED_AT = "pending_created_at"
     }
 }

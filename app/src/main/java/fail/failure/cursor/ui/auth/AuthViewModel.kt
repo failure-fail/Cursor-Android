@@ -28,18 +28,36 @@ class AuthViewModel(private val authRepository: AuthRepository) : ViewModel() {
 
     private var pendingChallenge: PkceUtil.LoginChallenge? = null
 
+    init {
+        // If the process was killed mid-login (e.g. while the browser had focus for however long
+        // typing a password/2FA code takes), the uuid/verifier survive on disk even though the
+        // poll loop chasing them doesn't. Pick it back up silently instead of just looking signed
+        // out with no explanation.
+        if (_uiState.value == LoginUiState.SignedOut) {
+            authRepository.resumePendingLogin()?.let { result ->
+                pendingChallenge = result.challenge
+                _uiState.value = LoginUiState.Polling(result.loginUrl)
+                startPolling(result.challenge)
+            }
+        }
+    }
+
     /** Kicks off the same browser-based account login the desktop app uses. */
     fun beginAccountLogin() {
         val result = authRepository.startAccountLogin()
         pendingChallenge = result.challenge
+        pollStarted = false
         _uiState.value = LoginUiState.AwaitingBrowser(result.loginUrl)
     }
 
     /** Call once a browser has actually been launched for [url], to start polling for completion. */
     fun onBrowserLaunched(url: String) {
-        val challenge = pendingChallenge
+        val challenge = pendingChallenge ?: return
         _uiState.value = LoginUiState.Polling(url)
-        if (challenge == null) return
+        startPolling(challenge)
+    }
+
+    private fun startPolling(challenge: PkceUtil.LoginChallenge) {
         // Guard against double-polling if this is called again (e.g. "open again" after the
         // first launch already kicked off polling) - only start a new poll loop once.
         if (pollStarted) return
@@ -62,6 +80,7 @@ class AuthViewModel(private val authRepository: AuthRepository) : ViewModel() {
     fun retry() {
         pendingChallenge = null
         pollStarted = false
+        authRepository.clearPendingLogin()
         _uiState.value = LoginUiState.SignedOut
     }
 
@@ -72,6 +91,7 @@ class AuthViewModel(private val authRepository: AuthRepository) : ViewModel() {
 
     fun signOut() {
         authRepository.signOut()
+        authRepository.clearPendingLogin()
         _uiState.value = LoginUiState.SignedOut
     }
 }

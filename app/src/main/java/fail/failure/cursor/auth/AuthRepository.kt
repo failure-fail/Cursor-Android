@@ -30,12 +30,42 @@ class AuthRepository(
 
     fun startAccountLogin(): LoginStartResult.AwaitingBrowser {
         val challenge = PkceUtil.generate()
+        tokenStore.savePendingChallenge(
+            uuid = challenge.uuid,
+            verifier = challenge.verifier,
+            challenge = challenge.challenge,
+            createdAtMillis = System.currentTimeMillis(),
+        )
         val url = deepLinkAuthClient.buildLoginUrl(challenge)
         return LoginStartResult.AwaitingBrowser(url, challenge)
     }
 
+    /**
+     * A login started before the app got backgrounded/killed while the browser had focus - the
+     * uuid/verifier survive on disk even though the in-memory poll loop that was chasing them
+     * didn't. Returns null (and clears it) once it's past [PENDING_CHALLENGE_TTL_MS], on the
+     * assumption a login nobody finished in that long isn't coming back.
+     */
+    fun resumePendingLogin(): LoginStartResult.AwaitingBrowser? {
+        val pending = tokenStore.readPendingChallenge() ?: return null
+        if (System.currentTimeMillis() - pending.createdAtMillis > PENDING_CHALLENGE_TTL_MS) {
+            tokenStore.clearPendingChallenge()
+            return null
+        }
+        val challenge = PkceUtil.LoginChallenge(
+            uuid = pending.uuid,
+            verifier = pending.verifier,
+            challenge = pending.challenge,
+        )
+        return LoginStartResult.AwaitingBrowser(deepLinkAuthClient.buildLoginUrl(challenge), challenge)
+    }
+
+    fun clearPendingLogin() = tokenStore.clearPendingChallenge()
+
     suspend fun awaitAccountLogin(challenge: PkceUtil.LoginChallenge): LoginPollResult {
-        val result = deepLinkAuthClient.pollForSession(challenge) ?: return LoginPollResult.TimedOut
+        val result = deepLinkAuthClient.pollForSession(challenge)
+        tokenStore.clearPendingChallenge()
+        if (result == null) return LoginPollResult.TimedOut
         val accessToken = result.accessToken ?: return LoginPollResult.TimedOut
         val userId = result.authId ?: JwtUtil.subjectOrNull(accessToken)
         tokenStore.saveAccountSession(
@@ -44,6 +74,10 @@ class AuthRepository(
             userId = userId,
         )
         return LoginPollResult.Success(userId)
+    }
+
+    private companion object {
+        const val PENDING_CHALLENGE_TTL_MS = 10 * 60 * 1000L
     }
 
     fun signInWithApiKey(apiKey: String) {
