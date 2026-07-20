@@ -1,14 +1,14 @@
 <resources>
-    <color name="cursor_bg">#0B0B0D</color>
-    <color name="cursor_surface">#18181B</color>
-    <color name="cursor_surface_raised">#222226</color>
-    <color name="cursor_accent">#FF6A3D</color>
-    <color name="cursor_accent_secondary">#7B5CFF</color>
-    <color name="cursor_text_primary">#F5F5F7</color>
-    <color name="cursor_text_secondary">#9A9AA2</color>
-    <color name="cursor_border">#2A2A2E</color>
-    <color name="cursor_success">#00E676</color>
-    <color name="cursor_warning">#FFC400</color>
-    <color name="cursor_error">#FF3B5C</color>
+    <color name="grok_bg">#0B0B0D</color>
+    <color name="grok_surface">#18181B</color>
+    <color name="grok_surface_raised">#222226</color>
+    <color name="grok_accent">#FF6A3D</color>
+    <color name="grok_accent_secondary">#7B5CFF</color>
+    <color name="grok_text_primary">#F5F5F7</color>
+    <color name="grok_text_secondary">#9A9AA2</color>
+    <color name="grok_border">#2A2A2E</color>
+    <color name="grok_success">#00E676</color>
+    <color name="grok_warning">#FFC400</color>
+    <color name="grok_error">#FF3B5C</color>
     <color name="widget_bg">#18181B</color>
 </resources>

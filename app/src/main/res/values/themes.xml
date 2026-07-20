@@ -1,8 +1,8 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <style name="Theme.CursorAndroid" parent="android:Theme.Material.NoActionBar">
-        <item name="android:statusBarColor">@color/cursor_bg</item>
-        <item name="android:navigationBarColor">@color/cursor_bg</item>
-        <item name="android:windowBackground">@color/cursor_bg</item>
+    <style name="Theme.GrokAndroid" parent="android:Theme.Material.NoActionBar">
+        <item name="android:statusBarColor">@color/grok_bg</item>
+        <item name="android:navigationBarColor">@color/grok_bg</item>
+        <item name="android:windowBackground">@color/grok_bg</item>
         <item name="android:windowLightStatusBar" tools:targetApi="m">false</item>
     </style>
 </resources>

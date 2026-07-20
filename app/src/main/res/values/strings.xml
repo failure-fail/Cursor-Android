@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Cursor</string>
-    <string name="widget_agent_status_label">Cursor Agents</string>
-    <string name="widget_new_agent_label">New Cursor Agent</string>
+    <string name="app_name">Grok</string>
+    <string name="widget_agent_status_label">Grok Sandboxes</string>
+    <string name="widget_new_agent_label">New Grok Sandbox</string>
 </resources>
