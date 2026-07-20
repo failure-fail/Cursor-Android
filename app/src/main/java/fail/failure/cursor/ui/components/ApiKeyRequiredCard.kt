@@ -51,7 +51,7 @@ fun ApiKeyRequiredCard(onSubmit: (String) -> Unit, modifier: Modifier = Modifier
         OutlinedButton(
             onClick = {
                 CustomTabsIntent.Builder().build()
-                    .launchUrl(context, "https://cursor.com/dashboard?tab=api-keys".toUri())
+                    .launchUrl(context, "https://cursor.com/dashboard/api".toUri())
             },
             modifier = Modifier.fillMaxWidth(),
         ) {
