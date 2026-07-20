@@ -25,7 +25,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -46,7 +45,9 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
 import androidx.browser.customtabs.CustomTabsIntent
 import androidx.core.net.toUri
+import fail.failure.cursor.ui.components.PillInputBar
 import fail.failure.cursor.ui.components.StatusBadge
+import fail.failure.cursor.ui.components.ThinkingIndicator
 import fail.failure.cursor.ui.theme.CursorAccent
 import fail.failure.cursor.ui.theme.CursorSurface
 import fail.failure.cursor.ui.theme.CursorTextSecondary
@@ -150,27 +151,18 @@ fun AgentDetailScreen(
                     Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(horizontal = 16.dp))
                 }
 
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    OutlinedTextField(
-                        value = followUp,
-                        onValueChange = { followUp = it },
-                        placeholder = { Text("Send a follow-up…") },
-                        modifier = Modifier.weight(1f),
-                    )
-                    IconButton(
-                        onClick = {
-                            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                            viewModel.sendFollowUp(followUp)
-                            followUp = ""
-                        },
-                        enabled = followUp.isNotBlank() && !state.isFollowUpSending,
-                    ) {
-                        Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Send")
-                    }
-                }
+                PillInputBar(
+                    value = followUp,
+                    onValueChange = { followUp = it },
+                    placeholder = "Follow up…",
+                    onSend = {
+                        if (followUp.isBlank() || state.isFollowUpSending) return@PillInputBar
+                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                        viewModel.sendFollowUp(followUp)
+                        followUp = ""
+                    },
+                    modifier = Modifier.padding(12.dp),
+                )
             }
         }
     }
@@ -199,19 +191,22 @@ private fun GitInfoCard(prUrl: String?, branch: String?, onOpen: (String) -> Uni
         modifier = Modifier
             .fillMaxWidth()
             .padding(16.dp)
-            .background(CursorSurface, RoundedCornerShape(12.dp))
-            .padding(12.dp),
+            .background(CursorSurface, RoundedCornerShape(14.dp))
+            .padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         branch?.let {
-            Text("Branch: $it", style = MaterialTheme.typography.labelSmall, color = CursorTextSecondary)
+            Text("🌿 $it", style = MaterialTheme.typography.labelSmall, color = CursorTextSecondary)
         }
         prUrl?.let { url ->
-            Text(
-                "View pull request →",
-                color = CursorAccent,
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.clickable { onOpen(url) },
-            )
+            Box(
+                modifier = Modifier
+                    .background(CursorAccent, RoundedCornerShape(50))
+                    .clickable { onOpen(url) }
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+            ) {
+                Text("View PR", color = Color.White, style = MaterialTheme.typography.labelSmall)
+            }
         }
     }
 }
@@ -220,11 +215,14 @@ private fun GitInfoCard(prUrl: String?, branch: String?, onOpen: (String) -> Uni
 private fun TranscriptLineView(line: TranscriptLine) {
     when (line) {
         is TranscriptLine.Assistant -> BubbleText(line.text, CursorSurface)
-        is TranscriptLine.Thinking -> Text(
-            line.text,
-            color = CursorTextSecondary,
-            style = MaterialTheme.typography.bodyMedium,
-        )
+        is TranscriptLine.Thinking -> Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            ThinkingIndicator()
+            Text(
+                line.text,
+                color = CursorTextSecondary,
+                style = MaterialTheme.typography.bodyMedium,
+            )
+        }
         is TranscriptLine.Tool -> Text(
             "🔧 ${line.name} — ${line.status}",
             color = CursorTextSecondary,

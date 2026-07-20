@@ -25,9 +25,11 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import fail.failure.cursor.ui.components.AgentCard
+import fail.failure.cursor.ui.components.AmbientBackground
 import fail.failure.cursor.ui.components.ApiKeyRequiredCard
 import fail.failure.cursor.ui.theme.CursorTextSecondary
 
@@ -41,10 +43,13 @@ fun AgentListScreen(
 ) {
     val state by viewModel.uiState.collectAsState()
 
+    AmbientBackground(modifier = Modifier.fillMaxSize()) {
     Scaffold(
+        containerColor = Color.Transparent,
         topBar = {
             TopAppBar(
                 title = { Text("Agents") },
+                colors = androidx.compose.material3.TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
                 actions = {
                     IconButton(onClick = onOpenSettings) {
                         Icon(Icons.Filled.Settings, contentDescription = "Settings")
@@ -107,5 +112,6 @@ fun AgentListScreen(
                 }
             }
         }
+    }
     }
 }

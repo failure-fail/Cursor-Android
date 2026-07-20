@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -33,6 +32,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.browser.customtabs.CustomTabsIntent
+import fail.failure.cursor.ui.components.AmbientBackground
+import fail.failure.cursor.ui.components.GlowButton
+import fail.failure.cursor.ui.components.OrbLogo
 import fail.failure.cursor.ui.theme.CursorTextSecondary
 
 /** Opens [url] in a Custom Tab, falling back to a plain browser Intent, then giving up. */
@@ -75,6 +77,7 @@ fun LoginScreen(viewModel: AuthViewModel, onSignedIn: () -> Unit) {
         }
     }
 
+    AmbientBackground(modifier = Modifier.fillMaxSize()) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -82,6 +85,8 @@ fun LoginScreen(viewModel: AuthViewModel, onSignedIn: () -> Unit) {
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
+        OrbLogo()
+        Spacer(modifier = Modifier.height(20.dp))
         Text("Cursor", style = MaterialTheme.typography.titleLarge)
         Spacer(modifier = Modifier.height(8.dp))
         Text(
@@ -96,12 +101,11 @@ fun LoginScreen(viewModel: AuthViewModel, onSignedIn: () -> Unit) {
 
         when (val current = state) {
             LoginUiState.SignedOut -> {
-                Button(
+                GlowButton(
+                    text = "Continue with Cursor account",
                     onClick = { viewModel.beginAccountLogin() },
                     modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text("Continue with Cursor account")
-                }
+                )
             }
             is LoginUiState.AwaitingBrowser -> {
                 CircularProgressIndicator()
@@ -134,9 +138,11 @@ fun LoginScreen(viewModel: AuthViewModel, onSignedIn: () -> Unit) {
             LoginUiState.TimedOut -> {
                 Text("That took too long. Try again?", color = CursorTextSecondary)
                 Spacer(modifier = Modifier.height(12.dp))
-                Button(onClick = { viewModel.beginAccountLogin() }, modifier = Modifier.fillMaxWidth()) {
-                    Text("Retry sign in")
-                }
+                GlowButton(
+                    text = "Retry sign in",
+                    onClick = { viewModel.beginAccountLogin() },
+                    modifier = Modifier.fillMaxWidth(),
+                )
             }
             is LoginUiState.BrowserLaunchFailed -> {
                 Text(
@@ -182,5 +188,6 @@ fun LoginScreen(viewModel: AuthViewModel, onSignedIn: () -> Unit) {
                 Text("Sign in with API key")
             }
         }
+    }
     }
 }

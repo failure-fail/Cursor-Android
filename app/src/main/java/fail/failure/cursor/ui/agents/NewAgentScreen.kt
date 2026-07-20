@@ -23,7 +23,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddPhotoAlternate
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -58,7 +57,10 @@ import fail.failure.cursor.network.model.EnvInput
 import fail.failure.cursor.network.model.ImageInput
 import fail.failure.cursor.network.model.RepositoryInfo
 import fail.failure.cursor.ui.components.ApiKeyRequiredCard
+import fail.failure.cursor.ui.components.GlowButton
+import fail.failure.cursor.ui.theme.CursorTextFieldShape
 import fail.failure.cursor.ui.theme.CursorTextSecondary
+import fail.failure.cursor.ui.theme.cursorFilledTextFieldColors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
@@ -155,6 +157,8 @@ fun NewAgentScreen(
                     value = state.prompt,
                     onValueChange = viewModel::updatePrompt,
                     label = { Text("What should the agent do?") },
+                    shape = CursorTextFieldShape,
+                    colors = cursorFilledTextFieldColors(),
                     modifier = Modifier.fillMaxWidth().height(160.dp),
                 )
             }
@@ -224,16 +228,16 @@ fun NewAgentScreen(
             item {
                 Column {
                     state.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-                    Button(
+                    GlowButton(
+                        text = "Launch agent",
                         onClick = {
                             haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                             viewModel.submit()
                         },
                         enabled = state.prompt.isNotBlank() && !state.isSubmitting,
+                        loading = state.isSubmitting,
                         modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Text(if (state.isSubmitting) "Launching…" else "Launch agent")
-                    }
+                    )
                 }
             }
         }
@@ -277,6 +281,8 @@ private fun RepoPickerSheet(
                 onValueChange = onQueryChange,
                 placeholder = { Text("Search repositories") },
                 leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+                shape = CursorTextFieldShape,
+                colors = cursorFilledTextFieldColors(),
                 modifier = Modifier.fillMaxWidth(),
             )
             Spacer(modifier = Modifier.height(8.dp))
