@@ -17,7 +17,8 @@ object GrokEndpoints {
     /** Token-auth header value the CLI sends as `X-XAI-Token-Auth`. */
     const val TOKEN_AUTH_HEADER = "xai-grok-cli"
 
-    const val CLIENT_VERSION = "0.1.0-android"
+    /** Match current Grok Build CLI (`xai-grok-version`); proxy rejects older builds. */
+    const val CLIENT_VERSION = "0.2.106"
 
     /** Alias kept for call sites that still expect a single API base. */
     const val API_BASE = CLI_CHAT_PROXY_BASE

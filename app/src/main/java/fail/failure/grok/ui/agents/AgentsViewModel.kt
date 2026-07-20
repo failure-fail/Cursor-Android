@@ -36,7 +36,9 @@ data class AgentsUiState(
             val filtered = agents.filter { agent ->
                 searchQuery.isBlank() ||
                     (agent.name ?: agent.id).contains(searchQuery, ignoreCase = true) ||
-                    agent.repos?.firstOrNull()?.url?.contains(searchQuery, ignoreCase = true) == true
+                    agent.name?.contains(searchQuery, ignoreCase = true) == true ||
+                    agent.description?.contains(searchQuery, ignoreCase = true) == true ||
+                    agent.status?.contains(searchQuery, ignoreCase = true) == true
             }
             val sorted = when (sortOrder) {
                 AgentSortOrder.NEWEST -> filtered.sortedByDescending { it.createdAt?.let(::parseInstantOrNull) }

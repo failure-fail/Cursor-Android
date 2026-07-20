@@ -144,9 +144,10 @@ class AgentStatusWidget : GlanceAppWidget() {
 
     @Composable
     private fun AgentRow(agent: Agent) {
-        val repo = agent.repos?.firstOrNull()?.url?.removePrefix("https://github.com/")
-        val subtitle = listOfNotNull(repo ?: "No repository", relativeTime(agent.updatedAt ?: agent.createdAt))
-            .joinToString(" · ")
+        val subtitle = listOfNotNull(
+            agent.status?.replaceFirstChar { it.uppercase() },
+            relativeTime(agent.updatedAt ?: agent.createdAt),
+        ).joinToString(" · ")
 
         Row(
             modifier = GlanceModifier

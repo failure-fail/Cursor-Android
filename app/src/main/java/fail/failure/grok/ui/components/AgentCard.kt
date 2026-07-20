@@ -26,14 +26,11 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import fail.failure.grok.network.model.Agent
-import fail.failure.grok.network.model.EnvInput
 import fail.failure.grok.ui.theme.GrokTextSecondary
 
-/** Mirrors the "All Repos → Recents" row style from Grok's own mobile UI: a small status dot,
- * a bold title, and a "status · repo" secondary line - rather than a boxy title+badge layout.
- * Rendered as a frosted [GlassCard] rather than a flat surface fill. Long-press toggles [pinned].
- * Archiving is a plain tap on the trailing icon rather than a swipe gesture - explicit and
- * discoverable instead of a hidden drag interaction. */
+/** Chat row: status dot, title, and a "status · model" secondary line.
+ * Rendered as a frosted [GlassCard]. Long-press toggles [pinned].
+ * Archiving is a plain tap on the trailing icon. */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun AgentCard(
@@ -83,18 +80,17 @@ fun AgentCard(
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
-                val repo = agent.repos?.firstOrNull()
-                val repoLabel = repo?.url?.removePrefix("https://github.com/") ?: "No repository"
+                val subtitle = listOfNotNull(
+                    (agent.status ?: "unknown").replaceFirstChar { it.uppercase() },
+                    agent.description?.trim()?.take(48)?.ifBlank { null },
+                ).joinToString(" · ")
                 Text(
-                    text = "${(agent.status ?: "unknown").replaceFirstChar { it.uppercase() }} · $repoLabel",
+                    text = subtitle,
                     style = MaterialTheme.typography.bodyMedium,
                     color = GrokTextSecondary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-            }
-            if (agent.env?.type == EnvInput.TYPE_MACHINE) {
-                Text("💻", style = MaterialTheme.typography.bodyMedium)
             }
             if (onArchive != null) {
                 IconButton(onClick = onArchive) {
