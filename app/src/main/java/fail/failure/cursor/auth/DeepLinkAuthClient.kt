@@ -3,9 +3,10 @@ package fail.failure.cursor.auth
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonPrimitive
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -30,18 +31,15 @@ import java.security.SecureRandom
  */
 class DeepLinkAuthClient(private val httpClient: OkHttpClient) {
 
-    @Serializable
     data class PollResponse(
-        @SerialName("authId") val authId: String? = null,
-        @SerialName("accessToken") val accessToken: String? = null,
-        @SerialName("refreshToken") val refreshToken: String? = null,
-        @SerialName("selectedTeamId") val selectedTeamId: Long? = null,
+        val authId: String? = null,
+        val accessToken: String? = null,
+        val refreshToken: String? = null,
     )
 
-    @Serializable
     data class RefreshResponse(
-        @SerialName("accessToken") val accessToken: String? = null,
-        @SerialName("refreshToken") val refreshToken: String? = null,
+        val accessToken: String? = null,
+        val refreshToken: String? = null,
     )
 
     private val json = Json { ignoreUnknownKeys = true }
@@ -108,14 +106,50 @@ class DeepLinkAuthClient(private val httpClient: OkHttpClient) {
                     response.code == 404 -> PollOutcome.Pending
                     response.isSuccessful -> {
                         val body = response.body?.string().orEmpty()
-                        val parsed = json.decodeFromString<PollResponse>(body)
-                        if (parsed.accessToken.isNullOrBlank()) PollOutcome.Error else PollOutcome.Success(parsed)
+                        val fields = parseStringFields(body, "authId", "accessToken", "refreshToken")
+                        val accessToken = fields?.get("accessToken")
+                        if (accessToken.isNullOrBlank()) {
+                            PollOutcome.Error
+                        } else {
+                            PollOutcome.Success(
+                                PollResponse(
+                                    authId = fields["authId"],
+                                    accessToken = accessToken,
+                                    refreshToken = fields["refreshToken"],
+                                ),
+                            )
+                        }
                     }
                     else -> PollOutcome.Error
                 }
             }
         } catch (_: Exception) {
             PollOutcome.Error
+        }
+    }
+
+    /**
+     * Reads only the named string fields, tolerating whatever shape or type the rest of the
+     * response takes (e.g. poll responses also include a `selectedTeamId` whose type isn't
+     * documented anywhere). A previous version decoded poll responses into a strict data class
+     * including `selectedTeamId: Long?`; when that field turned out not to be numeric, the
+     * entire parse threw and got swallowed by pollOnce's catch, silently treating a genuinely
+     * successful login response - real tokens and all - as an error forever. Reading field by
+     * field like this means a surprising shape in a field we don't use can't break the ones we do.
+     */
+    private fun parseStringFields(body: String, vararg names: String): Map<String, String?>? {
+        if (body.isBlank()) return null
+        val obj = try {
+            json.parseToJsonElement(body) as? JsonObject ?: return null
+        } catch (_: Exception) {
+            return null
+        }
+        return names.associateWith { name ->
+            try {
+                obj[name]?.jsonPrimitive?.contentOrNull
+            } catch (_: Exception) {
+                null
+            }
         }
     }
 
@@ -139,8 +173,8 @@ class DeepLinkAuthClient(private val httpClient: OkHttpClient) {
             httpClient.newCall(request).execute().use { response ->
                 if (!response.isSuccessful) return@withContext null
                 val responseBody = response.body?.string().orEmpty()
-                if (responseBody.isBlank()) return@withContext null
-                json.decodeFromString<RefreshResponse>(responseBody)
+                val fields = parseStringFields(responseBody, "accessToken", "refreshToken") ?: return@withContext null
+                RefreshResponse(accessToken = fields["accessToken"], refreshToken = fields["refreshToken"])
             }
         } catch (_: Exception) {
             null
