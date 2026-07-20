@@ -140,17 +140,18 @@ fun NewAgentScreen(
                             }
                         }
                         state.selectedModel?.parameters?.forEach { param ->
-                            val name = param.name
-                            if (name != null) {
-                                Text(name, style = MaterialTheme.typography.labelSmall, color = CursorTextSecondary)
-                                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    items(param.values.orEmpty()) { value ->
-                                        FilterChip(
-                                            selected = state.selectedModelParams[name] == value,
-                                            onClick = { viewModel.selectModelParam(name, value) },
-                                            label = { Text(value) },
-                                        )
-                                    }
+                            Text(
+                                param.displayName ?: param.id,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = CursorTextSecondary,
+                            )
+                            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                items(param.values.orEmpty()) { valueOption ->
+                                    FilterChip(
+                                        selected = state.selectedModelParams[param.id] == valueOption.value,
+                                        onClick = { viewModel.selectModelParam(param.id, valueOption.value) },
+                                        label = { Text(valueOption.displayName ?: valueOption.value) },
+                                    )
                                 }
                             }
                         }
@@ -266,7 +267,7 @@ fun NewAgentScreen(
 @Composable
 private fun RepoPickerButton(selected: RepositoryInfo?, onClick: () -> Unit) {
     OutlinedButton(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
-        Text(selected?.fullName ?: selected?.let { "${it.owner}/${it.repo}" } ?: "Choose a repository")
+        Text(selected?.url?.removePrefix("https://github.com/") ?: "Choose a repository")
     }
 }
 
@@ -293,9 +294,9 @@ private fun RepoPickerSheet(
             )
             Spacer(modifier = Modifier.height(8.dp))
             LazyColumn(modifier = Modifier.height(400.dp)) {
-                items(repos, key = { it.owner + "/" + it.repo }) { repo ->
+                items(repos, key = { it.url }) { repo ->
                     Text(
-                        repo.fullName ?: "${repo.owner}/${repo.repo}",
+                        repo.url.removePrefix("https://github.com/"),
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable { onSelect(repo) }

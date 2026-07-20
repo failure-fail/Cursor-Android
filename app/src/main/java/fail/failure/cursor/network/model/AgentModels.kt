@@ -101,9 +101,13 @@ data class Agent(
     val env: EnvInput? = null,
 )
 
+/** Every Cursor list endpoint (agents, repositories, models) wraps its array as `items`, not a
+ * name matching the resource - confirmed live against api.cursor.com. An earlier version guessed
+ * `agents`/`repositories`/`models` here, so every one of these always silently decoded to an
+ * empty list regardless of what the server actually returned. */
 @Serializable
 data class AgentListResponse(
-    val agents: List<Agent> = emptyList(),
+    @SerialName("items") val agents: List<Agent> = emptyList(),
     @SerialName("nextCursor") val cursor: String? = null,
 )
 
@@ -135,23 +139,32 @@ data class CreateRunRequest(
     val mode: String? = null,
 )
 
+/** The real `/v1/repositories` response is just `{"items":[{"url":"https://github.com/..."}]}` -
+ * no owner/repo split, no fullName, no visibility flag. An earlier version modeled a shape that
+ * doesn't exist at all, so this list always came back empty. */
 @Serializable
 data class RepositoryInfo(
-    val owner: String,
-    val repo: String,
-    @SerialName("fullName") val fullName: String? = null,
-    val private2: Boolean? = null,
+    val url: String,
 )
 
 @Serializable
 data class RepositoryListResponse(
-    val repositories: List<RepositoryInfo> = emptyList(),
+    @SerialName("items") val repositories: List<RepositoryInfo> = emptyList(),
 )
 
 @Serializable
+data class ModelParamValue(
+    val value: String,
+    val displayName: String? = null,
+)
+
+/** `parameters[].id` (not `name`), and `values` is a list of `{value, displayName?}` objects, not
+ * plain strings - both confirmed live against `/v1/models`. */
+@Serializable
 data class ModelParameter(
-    val name: String? = null,
-    val values: List<String>? = null,
+    val id: String,
+    val displayName: String? = null,
+    val values: List<ModelParamValue>? = null,
 )
 
 @Serializable
@@ -164,15 +177,15 @@ data class ModelInfo(
 
 @Serializable
 data class ModelListResponse(
-    val models: List<ModelInfo> = emptyList(),
+    @SerialName("items") val models: List<ModelInfo> = emptyList(),
 )
 
 @Serializable
 data class ApiKeyInfo(
-    val name: String? = null,
+    @SerialName("apiKeyName") val name: String? = null,
     @SerialName("createdAt") val createdAt: String? = null,
-    val userId: String? = null,
-    val email: String? = null,
+    val userId: Long? = null,
+    @SerialName("userEmail") val email: String? = null,
 )
 
 @Serializable

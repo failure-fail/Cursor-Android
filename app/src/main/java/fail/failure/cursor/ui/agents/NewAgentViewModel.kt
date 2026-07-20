@@ -49,7 +49,7 @@ data class NewAgentUiState(
             repositories
         } else {
             repositories.filter {
-                (it.fullName ?: "${it.owner}/${it.repo}").contains(repoQuery, ignoreCase = true)
+                it.url.contains(repoQuery, ignoreCase = true)
             }
         }
 }
@@ -192,7 +192,7 @@ class NewAgentViewModel(
                         )
                     },
                     repos = state.selectedRepo?.let {
-                        listOf(RepoInput(url = "https://github.com/${it.owner}/${it.repo}"))
+                        listOf(RepoInput(url = it.url))
                     },
                     autoCreatePr = true,
                     env = EnvInput(
