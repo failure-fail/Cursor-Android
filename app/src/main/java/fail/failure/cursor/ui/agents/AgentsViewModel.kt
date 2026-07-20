@@ -2,7 +2,9 @@ package fail.failure.cursor.ui.agents
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import fail.failure.cursor.auth.AuthRepository
 import fail.failure.cursor.network.ApiClient
+import fail.failure.cursor.network.isUnauthorized
 import fail.failure.cursor.network.model.Agent
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -13,10 +15,14 @@ data class AgentsUiState(
     val agents: List<Agent> = emptyList(),
     val isLoading: Boolean = false,
     val isRefreshing: Boolean = false,
+    val needsApiKey: Boolean = false,
     val error: String? = null,
 )
 
-class AgentsViewModel(private val apiClient: ApiClient) : ViewModel() {
+class AgentsViewModel(
+    private val apiClient: ApiClient,
+    private val authRepository: AuthRepository,
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AgentsUiState(isLoading = true))
     val uiState: StateFlow<AgentsUiState> = _uiState.asStateFlow()
@@ -31,6 +37,7 @@ class AgentsViewModel(private val apiClient: ApiClient) : ViewModel() {
             _uiState.value = _uiState.value.copy(
                 isLoading = !hadAgentsAlready,
                 isRefreshing = hadAgentsAlready,
+                needsApiKey = false,
                 error = null,
             )
             try {
@@ -40,9 +47,15 @@ class AgentsViewModel(private val apiClient: ApiClient) : ViewModel() {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     isRefreshing = false,
-                    error = e.message ?: "Failed to load agents",
+                    needsApiKey = e.isUnauthorized(),
+                    error = if (e.isUnauthorized()) null else e.message ?: "Failed to load agents",
                 )
             }
         }
+    }
+
+    fun signInWithApiKey(apiKey: String) {
+        authRepository.signInWithApiKey(apiKey)
+        refresh()
     }
 }

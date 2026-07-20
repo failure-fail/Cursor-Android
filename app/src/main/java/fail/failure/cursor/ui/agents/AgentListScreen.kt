@@ -28,6 +28,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import fail.failure.cursor.ui.components.AgentCard
+import fail.failure.cursor.ui.components.ApiKeyRequiredCard
 import fail.failure.cursor.ui.theme.CursorTextSecondary
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -65,6 +66,12 @@ fun AgentListScreen(
             when {
                 state.isLoading && state.agents.isEmpty() -> {
                     CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                }
+                state.needsApiKey -> {
+                    ApiKeyRequiredCard(
+                        onSubmit = viewModel::signInWithApiKey,
+                        modifier = Modifier.padding(16.dp),
+                    )
                 }
                 state.agents.isEmpty() -> {
                     Box(modifier = Modifier.fillMaxSize()) {

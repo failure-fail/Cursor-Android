@@ -57,6 +57,7 @@ import androidx.compose.ui.unit.dp
 import fail.failure.cursor.network.model.EnvInput
 import fail.failure.cursor.network.model.ImageInput
 import fail.failure.cursor.network.model.RepositoryInfo
+import fail.failure.cursor.ui.components.ApiKeyRequiredCard
 import fail.failure.cursor.ui.theme.CursorTextSecondary
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -99,6 +100,11 @@ fun NewAgentScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
+            if (state.needsApiKey) {
+                item {
+                    ApiKeyRequiredCard(onSubmit = viewModel::signInWithApiKey)
+                }
+            }
             item {
                 if (state.isLoadingOptions) {
                     CircularProgressIndicator()

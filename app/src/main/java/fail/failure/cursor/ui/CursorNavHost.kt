@@ -87,7 +87,7 @@ fun CursorNavHost(app: CursorApp, requestedDestination: String? = null) {
 
         composable(Routes.AGENTS) {
             val agentsViewModel: AgentsViewModel = viewModel(
-                factory = LambdaViewModelFactory { AgentsViewModel(app.apiClient) },
+                factory = LambdaViewModelFactory { AgentsViewModel(app.apiClient, app.authRepository) },
             )
             AgentListScreen(
                 viewModel = agentsViewModel,
@@ -99,7 +99,7 @@ fun CursorNavHost(app: CursorApp, requestedDestination: String? = null) {
 
         composable(Routes.NEW_AGENT) {
             val newAgentViewModel: NewAgentViewModel = viewModel(
-                factory = LambdaViewModelFactory { NewAgentViewModel(app.apiClient) },
+                factory = LambdaViewModelFactory { NewAgentViewModel(app.apiClient, app.authRepository) },
             )
             NewAgentScreen(
                 viewModel = newAgentViewModel,

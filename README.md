@@ -26,8 +26,16 @@ hands back an access/refresh token pair. This app does exactly that (`auth/PkceU
 4. Store the resulting session in `EncryptedSharedPreferences` and attach it to every API call as
    a bearer token.
 
-A "sign in with an API key" fallback is also available in Settings for anyone who'd rather use a
-scoped personal/service key from the Cursor dashboard instead of a full account session.
+**Important limitation:** the account session from this flow is a real Cursor login, but it's a
+different credential than what `api.cursor.com`'s Background/Cloud Agents API accepts. That API is
+documented as API-key-only (Basic or Bearer with a `crsr_...` key from the dashboard) - it
+returns a plain `401` for the account session token, confirmed by testing directly against it.
+Concretely: **signing in gets you into the app, but creating/viewing agents needs a personal API
+key from `cursor.com/dashboard` too** - there's no way around that from this app's side, since it's
+how Cursor's own API is scoped, not a bug in the request. The app detects the `401` and prompts for
+a key inline (paste it once, it's remembered) rather than failing silently; a "sign in with an API
+key" option is also available directly in Settings for anyone who'd rather skip the account login
+step entirely.
 
 **Caveat, stated plainly:** none of this is a published API - there's no spec for it, so it can
 break if Cursor changes their internal protocol. It's also had a rockier history than the rest of

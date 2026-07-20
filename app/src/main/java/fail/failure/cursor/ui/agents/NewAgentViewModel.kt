@@ -2,7 +2,9 @@ package fail.failure.cursor.ui.agents
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import fail.failure.cursor.auth.AuthRepository
 import fail.failure.cursor.network.ApiClient
+import fail.failure.cursor.network.isUnauthorized
 import fail.failure.cursor.network.model.CreateAgentRequest
 import fail.failure.cursor.network.model.EnvInput
 import fail.failure.cursor.network.model.ImageInput
@@ -36,6 +38,7 @@ data class NewAgentUiState(
     val isLoadingOptions: Boolean = true,
     val isSubmitting: Boolean = false,
     val createdAgentId: String? = null,
+    val needsApiKey: Boolean = false,
     val error: String? = null,
 ) {
     val filteredRepositories: List<RepositoryInfo>
@@ -48,13 +51,21 @@ data class NewAgentUiState(
         }
 }
 
-class NewAgentViewModel(private val apiClient: ApiClient) : ViewModel() {
+class NewAgentViewModel(
+    private val apiClient: ApiClient,
+    private val authRepository: AuthRepository,
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(NewAgentUiState())
     val uiState: StateFlow<NewAgentUiState> = _uiState.asStateFlow()
 
     init {
+        loadOptions()
+    }
+
+    private fun loadOptions() {
         viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoadingOptions = true, needsApiKey = false, error = null)
             try {
                 val repos = apiClient.service.repositories().repositories
                 val models = apiClient.service.models().models
@@ -68,10 +79,16 @@ class NewAgentViewModel(private val apiClient: ApiClient) : ViewModel() {
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isLoadingOptions = false,
-                    error = e.message ?: "Failed to load repositories/models",
+                    needsApiKey = e.isUnauthorized(),
+                    error = if (e.isUnauthorized()) null else e.message ?: "Failed to load repositories/models",
                 )
             }
         }
+    }
+
+    fun signInWithApiKey(apiKey: String) {
+        authRepository.signInWithApiKey(apiKey)
+        loadOptions()
     }
 
     fun updatePrompt(text: String) {
@@ -150,7 +167,7 @@ class NewAgentViewModel(private val apiClient: ApiClient) : ViewModel() {
         val state = _uiState.value
         if (state.prompt.isBlank() || state.isSubmitting) return
         viewModelScope.launch {
-            _uiState.value = state.copy(isSubmitting = true, error = null)
+            _uiState.value = state.copy(isSubmitting = true, needsApiKey = false, error = null)
             try {
                 val request = CreateAgentRequest(
                     prompt = PromptInput(
@@ -183,7 +200,8 @@ class NewAgentViewModel(private val apiClient: ApiClient) : ViewModel() {
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isSubmitting = false,
-                    error = e.message ?: "Failed to create agent",
+                    needsApiKey = e.isUnauthorized(),
+                    error = if (e.isUnauthorized()) null else e.message ?: "Failed to create agent",
                 )
             }
         }
