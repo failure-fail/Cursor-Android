@@ -1,7 +1,12 @@
 package fail.failure.cursor.ui.auth
 
+import android.content.ActivityNotFoundException
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Intent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -30,6 +35,26 @@ import androidx.core.net.toUri
 import androidx.browser.customtabs.CustomTabsIntent
 import fail.failure.cursor.ui.theme.CursorTextSecondary
 
+/** Opens [url] in a Custom Tab, falling back to a plain browser Intent, then giving up. */
+private fun openInBrowser(context: android.content.Context, url: String, onFailed: () -> Unit) {
+    try {
+        CustomTabsIntent.Builder().build().launchUrl(context, url.toUri())
+        return
+    } catch (_: ActivityNotFoundException) {
+        // fall through to plain browser intent
+    }
+    try {
+        context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri()).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+    } catch (_: ActivityNotFoundException) {
+        onFailed()
+    }
+}
+
+private fun copyToClipboard(context: android.content.Context, url: String) {
+    val clipboard = context.getSystemService(ClipboardManager::class.java)
+    clipboard?.setPrimaryClip(ClipData.newPlainText("Cursor sign-in link", url))
+}
+
 @Composable
 fun LoginScreen(viewModel: AuthViewModel, onSignedIn: () -> Unit) {
     val state by viewModel.uiState.collectAsState()
@@ -43,8 +68,11 @@ fun LoginScreen(viewModel: AuthViewModel, onSignedIn: () -> Unit) {
 
     LaunchedEffect(state) {
         val awaiting = state as? LoginUiState.AwaitingBrowser ?: return@LaunchedEffect
-        CustomTabsIntent.Builder().build().launchUrl(context, awaiting.url.toUri())
-        viewModel.onBrowserLaunched()
+        openInBrowser(context, awaiting.url) { viewModel.onBrowserLaunchFailed(awaiting.url) }
+        // Only transition to Polling if the launch above didn't already report failure.
+        if (viewModel.uiState.value is LoginUiState.AwaitingBrowser) {
+            viewModel.onBrowserLaunched(awaiting.url)
+        }
     }
 
     Column(
@@ -75,11 +103,32 @@ fun LoginScreen(viewModel: AuthViewModel, onSignedIn: () -> Unit) {
                     Text("Continue with Cursor account")
                 }
             }
-            is LoginUiState.AwaitingBrowser, LoginUiState.Polling -> {
+            is LoginUiState.AwaitingBrowser -> {
+                CircularProgressIndicator()
+                Spacer(modifier = Modifier.height(12.dp))
+                Text("Opening browser…", color = CursorTextSecondary)
+            }
+            is LoginUiState.Polling -> {
                 CircularProgressIndicator()
                 Spacer(modifier = Modifier.height(12.dp))
                 Text("Waiting for you to finish signing in…", color = CursorTextSecondary)
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    "If nothing opened, or you closed the tab by accident:",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = CursorTextSecondary,
+                    textAlign = TextAlign.Center,
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    TextButton(onClick = { openInBrowser(context, current.url) {} }) {
+                        Text("Open again")
+                    }
+                    TextButton(onClick = { copyToClipboard(context, current.url) }) {
+                        Text("Copy link")
+                    }
+                }
+                Spacer(modifier = Modifier.height(4.dp))
                 TextButton(onClick = { viewModel.retry() }) { Text("Cancel") }
             }
             LoginUiState.TimedOut -> {
@@ -87,6 +136,24 @@ fun LoginScreen(viewModel: AuthViewModel, onSignedIn: () -> Unit) {
                 Spacer(modifier = Modifier.height(12.dp))
                 Button(onClick = { viewModel.beginAccountLogin() }, modifier = Modifier.fillMaxWidth()) {
                     Text("Retry sign in")
+                }
+            }
+            is LoginUiState.BrowserLaunchFailed -> {
+                Text(
+                    "No browser app could be opened. Copy the link below and paste it into a browser.",
+                    color = CursorTextSecondary,
+                    textAlign = TextAlign.Center,
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                OutlinedButton(
+                    onClick = { copyToClipboard(context, current.url) },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text("Copy sign-in link")
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                TextButton(onClick = { viewModel.onBrowserLaunched(current.url) }) {
+                    Text("I opened it manually, keep waiting")
                 }
             }
             LoginUiState.SignedIn -> {

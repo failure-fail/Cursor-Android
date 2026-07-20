@@ -1,6 +1,8 @@
 package fail.failure.cursor.auth
 
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -64,7 +66,7 @@ class DeepLinkAuthClient(private val httpClient: OkHttpClient) {
 
         repeat(POLL_MAX_ATTEMPTS) {
             delay(delayMs)
-            val outcome = pollOnce(challenge)
+            val outcome = withContext(Dispatchers.IO) { pollOnce(challenge) }
             when (outcome) {
                 is PollOutcome.Success -> return outcome.response
                 PollOutcome.Pending -> {
@@ -108,18 +110,18 @@ class DeepLinkAuthClient(private val httpClient: OkHttpClient) {
     }
 
     /** Mirrors auth/exchange_user_api_key: POST with the refresh token as a bearer, empty body. */
-    fun refresh(refreshToken: String): RefreshResponse? {
+    suspend fun refresh(refreshToken: String): RefreshResponse? = withContext(Dispatchers.IO) {
         val body = "{}".toRequestBody("application/json".toMediaType())
         val request = Request.Builder()
             .url("https://api2.cursor.sh/auth/exchange_user_api_key")
             .header("Authorization", "Bearer $refreshToken")
             .post(body)
             .build()
-        return try {
+        try {
             httpClient.newCall(request).execute().use { response ->
-                if (!response.isSuccessful) return null
+                if (!response.isSuccessful) return@withContext null
                 val responseBody = response.body?.string().orEmpty()
-                if (responseBody.isBlank()) return null
+                if (responseBody.isBlank()) return@withContext null
                 json.decodeFromString<RefreshResponse>(responseBody)
             }
         } catch (_: Exception) {

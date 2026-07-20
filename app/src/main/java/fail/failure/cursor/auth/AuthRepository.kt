@@ -50,7 +50,7 @@ class AuthRepository(
         tokenStore.saveApiKey(apiKey.trim())
     }
 
-    fun refreshAccountSessionIfNeeded(): Boolean {
+    suspend fun refreshAccountSessionIfNeeded(): Boolean {
         val current = session.value
         val refreshToken = current.refreshToken ?: return false
         val refreshed = deepLinkAuthClient.refresh(refreshToken) ?: return false

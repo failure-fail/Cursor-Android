@@ -13,8 +13,9 @@ import kotlinx.coroutines.launch
 sealed interface LoginUiState {
     data object SignedOut : LoginUiState
     data class AwaitingBrowser(val url: String) : LoginUiState
-    data object Polling : LoginUiState
+    data class Polling(val url: String) : LoginUiState
     data object TimedOut : LoginUiState
+    data class BrowserLaunchFailed(val url: String) : LoginUiState
     data object SignedIn : LoginUiState
 }
 
@@ -34,10 +35,15 @@ class AuthViewModel(private val authRepository: AuthRepository) : ViewModel() {
         _uiState.value = LoginUiState.AwaitingBrowser(result.loginUrl)
     }
 
-    /** Call once the Custom Tab has been launched, to start polling for completion. */
-    fun onBrowserLaunched() {
-        val challenge = pendingChallenge ?: return
-        _uiState.value = LoginUiState.Polling
+    /** Call once a browser has actually been launched for [url], to start polling for completion. */
+    fun onBrowserLaunched(url: String) {
+        val challenge = pendingChallenge
+        _uiState.value = LoginUiState.Polling(url)
+        if (challenge == null) return
+        // Guard against double-polling if this is called again (e.g. "open again" after the
+        // first launch already kicked off polling) - only start a new poll loop once.
+        if (pollStarted) return
+        pollStarted = true
         viewModelScope.launch {
             when (authRepository.awaitAccountLogin(challenge)) {
                 is LoginPollResult.Success -> _uiState.value = LoginUiState.SignedIn
@@ -46,8 +52,16 @@ class AuthViewModel(private val authRepository: AuthRepository) : ViewModel() {
         }
     }
 
+    /** The Custom Tab and the plain-browser fallback both failed to launch (no browser app?). */
+    fun onBrowserLaunchFailed(url: String) {
+        _uiState.value = LoginUiState.BrowserLaunchFailed(url)
+    }
+
+    private var pollStarted = false
+
     fun retry() {
         pendingChallenge = null
+        pollStarted = false
         _uiState.value = LoginUiState.SignedOut
     }
 
