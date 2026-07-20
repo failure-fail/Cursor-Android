@@ -10,31 +10,32 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
-import kotlin.math.min
+import java.security.SecureRandom
 
 /**
- * Talks to the same two endpoints the Cursor desktop app and `cursor-agent login` CLI use
- * for a full account sign-in (as opposed to a scoped API key):
+ * Talks to the same two endpoints the real Cursor desktop app uses for a full account sign-in
+ * (as opposed to a scoped API key).
  *
- *  1. The user is sent to https://cursor.com/loginDeepControl?challenge=...&uuid=...&mode=login
- *     &redirectTarget=cli in a browser/Custom Tab and completes Cursor's normal login/2FA/SSO
- *     there.
- *  2. Meanwhile this client polls https://api2.cursor.sh/auth/poll?uuid=...&verifier=...
- *     which returns 404 until the browser step finishes, then returns the session tokens.
- *
- * The exact URL parameters, polling backoff, and refresh endpoint below are verified against
- * schultzp2020/pi-extensions' pi-cursor package (packages/pi-cursor/src/{pkce,auth}.ts), a
- * working open-source implementation of this same flow - not just secondary descriptions of
- * it, since an earlier version of this client had the request shape subtly wrong (missing
- * `redirectTarget`, and calling a refresh endpoint that doesn't exist) and login silently
- * never completed as a result.
+ * This was previously modeled after a third-party reimplementation (schultzp2020/pi-extensions'
+ * pi-cursor package), which turned out to build a subtly different request than what Cursor's
+ * own desktop app sends (notably an extraneous `redirectTarget` param and a missing
+ * `supportsSelectedTeamLogin` one) - close enough to load the login page, but apparently not
+ * close enough for it to ever get past its "Logging in..." holding screen. To get the actual
+ * ground truth, this was rewritten directly against the real desktop app's own code: downloaded
+ * the official Linux build (`cursor_3.12.17_amd64.deb` from
+ * `cursor.com/api/download?platform=linux-x64`), unpacked it, and read the unminified-enough
+ * `loginLink`/poll implementation straight out of
+ * `resources/app/out/vs/workbench/workbench.desktop.main.js`. The request shape below - URL
+ * params, poll headers, and response fields - is transcribed from that source, not inferred.
  */
 class DeepLinkAuthClient(private val httpClient: OkHttpClient) {
 
     @Serializable
     data class PollResponse(
+        @SerialName("authId") val authId: String? = null,
         @SerialName("accessToken") val accessToken: String? = null,
         @SerialName("refreshToken") val refreshToken: String? = null,
+        @SerialName("selectedTeamId") val selectedTeamId: Long? = null,
     )
 
     @Serializable
@@ -45,34 +46,31 @@ class DeepLinkAuthClient(private val httpClient: OkHttpClient) {
 
     private val json = Json { ignoreUnknownKeys = true }
 
+    /** Matches the real app's `loginLink(mode = "login")`: no `redirectTarget` param exists. */
     fun buildLoginUrl(challenge: PkceUtil.LoginChallenge): String {
         return "https://cursor.com/loginDeepControl" +
             "?challenge=${challenge.challenge}" +
             "&uuid=${challenge.uuid}" +
             "&mode=login" +
-            "&redirectTarget=cli"
+            "&supportsSelectedTeamLogin=true"
     }
 
     /**
-     * Suspends, polling with the same exponential backoff as the reference implementation
-     * (1s base delay, x1.2 per attempt, capped at 10s, up to 150 attempts - a bit over 5
-     * minutes total) until the browser login completes. A 404 means "not yet" and is expected
-     * throughout most of the poll; any other non-2xx counts as an error, and 3 in a row aborts
-     * early rather than spinning for the full 150 attempts on a dead session.
+     * Polls every 500ms, same cadence as the real desktop app, but for up to 5 minutes rather
+     * than the desktop app's ~15s (30 attempts) - reasonable for a status-bar quick-login on
+     * desktop, too short for someone unlocking their phone, switching to a browser, and typing
+     * a password. 404 means "not yet"; anything else non-2xx counts as an error, 3 in a row
+     * aborts early rather than polling a dead session for the full 5 minutes.
      */
     suspend fun pollForSession(challenge: PkceUtil.LoginChallenge): PollResponse? {
-        var delayMs = POLL_BASE_DELAY_MS
         var consecutiveErrors = 0
 
         repeat(POLL_MAX_ATTEMPTS) {
-            delay(delayMs)
+            delay(POLL_INTERVAL_MS)
             val outcome = withContext(Dispatchers.IO) { pollOnce(challenge) }
             when (outcome) {
                 is PollOutcome.Success -> return outcome.response
-                PollOutcome.Pending -> {
-                    consecutiveErrors = 0
-                    delayMs = min((delayMs * POLL_BACKOFF_MULTIPLIER).toLong(), POLL_MAX_DELAY_MS)
-                }
+                PollOutcome.Pending -> consecutiveErrors = 0
                 PollOutcome.Error -> {
                     consecutiveErrors++
                     if (consecutiveErrors >= 3) return null
@@ -91,7 +89,19 @@ class DeepLinkAuthClient(private val httpClient: OkHttpClient) {
     private fun pollOnce(challenge: PkceUtil.LoginChallenge): PollOutcome {
         val url = "https://api2.cursor.sh/auth/poll" +
             "?uuid=${challenge.uuid}&verifier=${challenge.verifier}"
-        val request = Request.Builder().url(url).get().build()
+        val request = Request.Builder()
+            .url(url)
+            // Same four headers the real desktop app sends on every poll request (see
+            // getRawAuthFetchHeaders / the loginLink poll call in workbench.desktop.main.js).
+            // Privacy mode and onboarding state aren't tracked here, so these use the same
+            // values the app sends before it has fetched that info itself (undefined ->
+            // "implicit-false", and onboarding-completed false).
+            .header("x-ghost-mode", "implicit-false")
+            .header("x-new-onboarding-completed", "false")
+            .header("x-cursor-client-type", "ide")
+            .header("traceparent", randomTraceparent())
+            .get()
+            .build()
         return try {
             httpClient.newCall(request).execute().use { response ->
                 when {
@@ -107,6 +117,14 @@ class DeepLinkAuthClient(private val httpClient: OkHttpClient) {
         } catch (_: Exception) {
             PollOutcome.Error
         }
+    }
+
+    /** W3C Trace Context header: version-traceId-spanId-flags, all hex. */
+    private fun randomTraceparent(): String {
+        val random = SecureRandom()
+        val traceId = ByteArray(16).also { random.nextBytes(it) }.joinToString("") { "%02x".format(it) }
+        val spanId = ByteArray(8).also { random.nextBytes(it) }.joinToString("") { "%02x".format(it) }
+        return "00-$traceId-$spanId-01"
     }
 
     /** Mirrors auth/exchange_user_api_key: POST with the refresh token as a bearer, empty body. */
@@ -130,9 +148,7 @@ class DeepLinkAuthClient(private val httpClient: OkHttpClient) {
     }
 
     private companion object {
-        const val POLL_MAX_ATTEMPTS = 150
-        const val POLL_BASE_DELAY_MS = 1000L
-        const val POLL_MAX_DELAY_MS = 10_000L
-        const val POLL_BACKOFF_MULTIPLIER = 1.2
+        const val POLL_MAX_ATTEMPTS = 600
+        const val POLL_INTERVAL_MS = 500L
     }
 }

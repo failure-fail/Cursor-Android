@@ -37,7 +37,7 @@ class AuthRepository(
     suspend fun awaitAccountLogin(challenge: PkceUtil.LoginChallenge): LoginPollResult {
         val result = deepLinkAuthClient.pollForSession(challenge) ?: return LoginPollResult.TimedOut
         val accessToken = result.accessToken ?: return LoginPollResult.TimedOut
-        val userId = JwtUtil.subjectOrNull(accessToken)
+        val userId = result.authId ?: JwtUtil.subjectOrNull(accessToken)
         tokenStore.saveAccountSession(
             accessToken = accessToken,
             refreshToken = result.refreshToken,
