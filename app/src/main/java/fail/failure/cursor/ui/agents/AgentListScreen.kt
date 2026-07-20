@@ -13,6 +13,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -45,6 +46,8 @@ import fail.failure.cursor.ui.components.AgentCardSkeleton
 import fail.failure.cursor.ui.components.AmbientBackground
 import fail.failure.cursor.ui.components.ApiKeyRequiredCard
 import fail.failure.cursor.ui.components.StaggeredItem
+import fail.failure.cursor.ui.theme.CursorAccent
+import fail.failure.cursor.ui.theme.CursorBackground
 import fail.failure.cursor.ui.theme.CursorError
 import fail.failure.cursor.ui.theme.CursorTextFieldShape
 import fail.failure.cursor.ui.theme.CursorTextSecondary
@@ -76,7 +79,12 @@ fun AgentListScreen(
             )
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = onNewAgent) {
+            FloatingActionButton(
+                onClick = onNewAgent,
+                shape = CircleShape,
+                containerColor = CursorAccent,
+                contentColor = Color.White,
+            ) {
                 Icon(Icons.Filled.Add, contentDescription = "New agent")
             }
         },
@@ -212,6 +220,12 @@ private fun SwipeToArchive(onArchive: () -> Unit, content: @Composable () -> Uni
             }
         },
     ) {
-        content()
+        // AgentCard is a translucent GlassCard, not an opaque surface - without this solid
+        // backing directly behind it, the "always visible" backgroundContent Box above bleeds
+        // straight through it even when nothing is being swiped, since SwipeToDismissBox only
+        // hides its background by relying on the foreground content being opaque.
+        Box(modifier = Modifier.background(CursorBackground, RoundedCornerShape(20.dp))) {
+            content()
+        }
     }
 }
