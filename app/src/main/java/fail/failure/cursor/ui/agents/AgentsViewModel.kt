@@ -12,6 +12,7 @@ import kotlinx.coroutines.launch
 data class AgentsUiState(
     val agents: List<Agent> = emptyList(),
     val isLoading: Boolean = false,
+    val isRefreshing: Boolean = false,
     val error: String? = null,
 )
 
@@ -25,13 +26,22 @@ class AgentsViewModel(private val apiClient: ApiClient) : ViewModel() {
     }
 
     fun refresh() {
+        val hadAgentsAlready = _uiState.value.agents.isNotEmpty()
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+            _uiState.value = _uiState.value.copy(
+                isLoading = !hadAgentsAlready,
+                isRefreshing = hadAgentsAlready,
+                error = null,
+            )
             try {
                 val response = apiClient.service.listAgents()
-                _uiState.value = AgentsUiState(agents = response.agents, isLoading = false)
+                _uiState.value = AgentsUiState(agents = response.agents, isLoading = false, isRefreshing = false)
             } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(isLoading = false, error = e.message ?: "Failed to load agents")
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    isRefreshing = false,
+                    error = e.message ?: "Failed to load agents",
+                )
             }
         }
     }

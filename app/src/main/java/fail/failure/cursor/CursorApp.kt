@@ -10,6 +10,7 @@ import fail.failure.cursor.auth.TokenStore
 import fail.failure.cursor.network.ApiClient
 import fail.failure.cursor.notification.AgentPollWorker
 import fail.failure.cursor.notification.Notifications
+import fail.failure.cursor.onboarding.OnboardingPrefs
 import okhttp3.OkHttpClient
 import java.util.concurrent.TimeUnit
 
@@ -22,12 +23,15 @@ class CursorApp : Application() {
         private set
     lateinit var authRepository: AuthRepository
         private set
+    lateinit var onboardingPrefs: OnboardingPrefs
+        private set
 
     override fun onCreate() {
         super.onCreate()
         tokenStore = TokenStore(this)
         apiClient = ApiClient(tokenStore)
         authRepository = AuthRepository(tokenStore, DeepLinkAuthClient(OkHttpClient()))
+        onboardingPrefs = OnboardingPrefs(this)
         Notifications.ensureChannel(this)
         schedulePolling()
     }

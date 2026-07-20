@@ -37,22 +37,41 @@ so they can break if Cursor changes that internal protocol. The rest of the app 
 
 ## Features
 
-- Launch a background agent against a GitHub repo with a prompt + model choice
-- Live-streamed transcript (assistant text, thinking, tool calls) over the run's SSE endpoint
-- Follow-up messages to a running/finished agent
-- Agent list with status, usage, and cancel
+- Launch a background agent against a GitHub repo, with a searchable repo picker, model +
+  per-model parameter choice, up to 5 image attachments, and advanced env vars / MCP server config
+- **Remote Control**: target a new agent at "My machine" instead of the cloud, with a keep-awake
+  toggle, the same handoff the official iOS app calls Remote Control (see the caveat below - the
+  exact `env` wire shape isn't publicly documented, so this is a best-effort mirror of the
+  behavior described in Cursor's own mobile-app announcement)
+- Live-streamed transcript (assistant text, thinking, tool calls) over the run's SSE endpoint, plus
+  a git/PR info card once a run finishes
+- Follow-up messages to a running/finished agent; cancel, archive/unarchive, delete
+- Usage (token counts) and artifacts screens per agent, with presigned-URL downloads
+- Agent list with pull-to-refresh and status badges
 - Two home-screen widgets (Jetpack Glance): recent agent statuses, and a one-tap "new agent" tile
-- Background polling (WorkManager) + local notifications when an agent finishes or needs input
+- An ongoing, updating notification while a run is active (closest Android equivalent to iOS's
+  lock-screen Live Activity), backed by WorkManager polling so finished/needs-input agents still
+  notify you when the app isn't open
+- One-time onboarding screen, haptic feedback on key actions, animated screen transitions
+
+## What's still missing vs. the official iOS app
+
+This is a community project built in one sitting, not a 1:1 port. Known gaps: no inline code-diff
+viewer (PRs open in the browser instead), no MCP servers beyond simple name+URL pairs, no custom
+subagents UI, and Android has no true Live Activity equivalent (API 36's Live Updates could
+replace the ongoing-notification approach once compileSdk moves to 36).
 
 ## Project layout
 
 ```
 app/src/main/java/fail/failure/cursor/
-  auth/        PKCE challenge generation, the login/poll/refresh network calls, token storage
-  network/     Retrofit service + hand-rolled SSE client for api.cursor.com
-  ui/          Compose screens (login, agent list, new agent, agent detail, settings)
-  widget/      Glance app widgets
-  notification/ WorkManager poller + notification channel
+  auth/          PKCE challenge generation, the login/poll/refresh network calls, token storage
+  network/       Retrofit service + hand-rolled SSE client for api.cursor.com
+  ui/            Compose screens (onboarding, login, agent list, new agent, agent detail,
+                 usage/artifacts, settings)
+  widget/        Glance app widgets
+  notification/  WorkManager poller + ongoing/terminal notification helpers
+  onboarding/    One-time intro-seen flag
 ```
 
 ## Building

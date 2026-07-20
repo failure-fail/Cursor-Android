@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import fail.failure.cursor.network.model.Agent
+import fail.failure.cursor.network.model.EnvInput
 import fail.failure.cursor.ui.theme.CursorSurface
 import fail.failure.cursor.ui.theme.CursorTextSecondary
 
@@ -39,13 +40,19 @@ fun AgentCard(agent: Agent, onClick: () -> Unit, modifier: Modifier = Modifier) 
             StatusBadge(status = agent.status)
         }
         Spacer(modifier = Modifier.height(6.dp))
-        val repo = agent.repos?.firstOrNull()
-        Text(
-            text = repo?.repositoryUrl ?: repo?.let { "${it.owner}/${it.repo}" } ?: "No repository",
-            style = MaterialTheme.typography.bodyMedium,
-            color = CursorTextSecondary,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
+        Row(modifier = Modifier.fillMaxWidth()) {
+            val repo = agent.repos?.firstOrNull()
+            Text(
+                text = repo?.repositoryUrl ?: repo?.let { "${it.owner}/${it.repo}" } ?: "No repository",
+                style = MaterialTheme.typography.bodyMedium,
+                color = CursorTextSecondary,
+                modifier = Modifier.weight(1f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            if (agent.env?.type == EnvInput.TYPE_MACHINE) {
+                Text("💻", style = MaterialTheme.typography.bodyMedium)
+            }
+        }
     }
 }

@@ -4,6 +4,7 @@ import fail.failure.cursor.network.model.Agent
 import fail.failure.cursor.network.model.AgentListResponse
 import fail.failure.cursor.network.model.AgentUsageResponse
 import fail.failure.cursor.network.model.ApiKeyInfo
+import fail.failure.cursor.network.model.ArtifactDownloadResponse
 import fail.failure.cursor.network.model.ArtifactListResponse
 import fail.failure.cursor.network.model.CreateAgentRequest
 import fail.failure.cursor.network.model.CreateAgentResponse
@@ -61,6 +62,12 @@ interface CursorApiService {
 
     @GET("v1/agents/{id}/artifacts")
     suspend fun listArtifacts(@Path("id") id: String): ArtifactListResponse
+
+    @GET("v1/agents/{id}/artifacts/download")
+    suspend fun getArtifactDownloadUrl(
+        @Path("id") id: String,
+        @Query("path") path: String,
+    ): ArtifactDownloadResponse
 
     @POST("v1/agents/{id}/archive")
     suspend fun archiveAgent(@Path("id") id: String)

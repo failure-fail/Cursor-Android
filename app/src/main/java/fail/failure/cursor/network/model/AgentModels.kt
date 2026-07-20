@@ -14,15 +14,63 @@ data class RepoInput(
 @Serializable
 data class CreateAgentRequest(
     val prompt: PromptInput,
-    val model: String? = null,
+    val model: ModelSelectionInput? = null,
     val name: String? = null,
     val repos: List<RepoInput>? = null,
     @SerialName("autoCreatePr") val autoCreatePr: Boolean? = null,
     @SerialName("workOnCurrentBranch") val workOnCurrentBranch: Boolean? = null,
+    val env: EnvInput? = null,
+    val envVars: Map<String, String>? = null,
+    val mcpServers: List<McpServerInput>? = null,
+    val customSubagents: List<CustomSubagentInput>? = null,
 )
 
 @Serializable
-data class PromptInput(val text: String)
+data class PromptInput(val text: String, val images: List<ImageInput>? = null)
+
+@Serializable
+data class ImageInput(
+    /** Base64-encoded image bytes (no data: URI prefix). */
+    val data: String,
+    val mediaType: String,
+)
+
+/**
+ * Where the agent's run actually executes. "machine" is Cursor's Remote Control target: an
+ * always-on desktop session, the same way the official mobile app hands off to your own
+ * computer instead of a cloud sandbox. The exact wire shape here (particularly `keepAwake`)
+ * isn't in the public API reference, so this mirrors the documented `env` field name and the
+ * "keep my computer awake" toggle described in Cursor's own mobile-app announcement, but may
+ * need adjusting once/if Cursor publishes the full schema.
+ */
+@Serializable
+data class EnvInput(
+    val type: String,
+    val keepAwake: Boolean? = null,
+) {
+    companion object {
+        const val TYPE_CLOUD = "cloud"
+        const val TYPE_MACHINE = "machine"
+    }
+}
+
+@Serializable
+data class ModelSelectionInput(
+    val id: String,
+    val parameters: Map<String, String>? = null,
+)
+
+@Serializable
+data class McpServerInput(
+    val name: String,
+    val url: String,
+)
+
+@Serializable
+data class CustomSubagentInput(
+    val name: String,
+    val prompt: String,
+)
 
 @Serializable
 data class CreateAgentResponse(
@@ -40,6 +88,7 @@ data class Agent(
     @SerialName("autoCreatePr") val autoCreatePr: Boolean? = null,
     @SerialName("createdAt") val createdAt: String? = null,
     val archived: Boolean? = null,
+    val env: EnvInput? = null,
 )
 
 @Serializable
@@ -124,8 +173,17 @@ data class UsageTotals(
 )
 
 @Serializable
+data class RunUsage(
+    val runId: String? = null,
+    @SerialName("inputTokens") val inputTokens: Long? = null,
+    @SerialName("outputTokens") val outputTokens: Long? = null,
+    @SerialName("totalTokens") val totalTokens: Long? = null,
+)
+
+@Serializable
 data class AgentUsageResponse(
     val totalUsage: UsageTotals? = null,
+    val runs: List<RunUsage> = emptyList(),
 )
 
 @Serializable
@@ -138,4 +196,9 @@ data class Artifact(
 @Serializable
 data class ArtifactListResponse(
     val artifacts: List<Artifact> = emptyList(),
+)
+
+@Serializable
+data class ArtifactDownloadResponse(
+    val url: String,
 )
