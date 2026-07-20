@@ -36,7 +36,6 @@ data class AgentsUiState(
             val filtered = agents.filter { agent ->
                 searchQuery.isBlank() ||
                     (agent.name ?: agent.id).contains(searchQuery, ignoreCase = true) ||
-                    agent.name?.contains(searchQuery, ignoreCase = true) == true ||
                     agent.description?.contains(searchQuery, ignoreCase = true) == true ||
                     agent.status?.contains(searchQuery, ignoreCase = true) == true
             }
