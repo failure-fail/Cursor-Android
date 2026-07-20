@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import fail.failure.cursor.auth.AuthRepository
 import fail.failure.cursor.network.ApiClient
+import fail.failure.cursor.network.cursorApiErrorMessage
 import fail.failure.cursor.network.isUnauthorized
 import fail.failure.cursor.network.model.CreateAgentRequest
 import fail.failure.cursor.network.model.EnvInput
@@ -85,7 +86,7 @@ class NewAgentViewModel(
                     isLoadingOptions = false,
                     needsApiKey = unauthorized,
                     apiKeyError = if (unauthorized && triedAKey) {
-                        "That key wasn't accepted. Double-check it and try again."
+                        e.cursorApiErrorMessage() ?: "That key wasn't accepted. Double-check it and try again."
                     } else {
                         null
                     },
@@ -208,10 +209,12 @@ class NewAgentViewModel(
                 val response = apiClient.service.createAgent(request)
                 _uiState.value = _uiState.value.copy(isSubmitting = false, createdAgentId = response.agent.id)
             } catch (e: Exception) {
+                val unauthorized = e.isUnauthorized()
                 _uiState.value = _uiState.value.copy(
                     isSubmitting = false,
-                    needsApiKey = e.isUnauthorized(),
-                    error = if (e.isUnauthorized()) null else e.message ?: "Failed to create agent",
+                    needsApiKey = unauthorized,
+                    apiKeyError = if (unauthorized) e.cursorApiErrorMessage() else null,
+                    error = if (unauthorized) null else e.message ?: "Failed to create agent",
                 )
             }
         }

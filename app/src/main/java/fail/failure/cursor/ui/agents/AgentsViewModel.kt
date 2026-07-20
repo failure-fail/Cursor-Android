@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import fail.failure.cursor.auth.AuthRepository
 import fail.failure.cursor.network.ApiClient
+import fail.failure.cursor.network.cursorApiErrorMessage
 import fail.failure.cursor.network.isUnauthorized
 import fail.failure.cursor.network.model.Agent
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -52,7 +53,7 @@ class AgentsViewModel(
                     isRefreshing = false,
                     needsApiKey = unauthorized,
                     apiKeyError = if (unauthorized && triedAKey) {
-                        "That key wasn't accepted. Double-check it and try again."
+                        e.cursorApiErrorMessage() ?: "That key wasn't accepted. Double-check it and try again."
                     } else {
                         null
                     },
