@@ -42,7 +42,6 @@ class AuthViewModel(private val authRepository: AuthRepository) : ViewModel() {
             when (authRepository.awaitAccountLogin(challenge)) {
                 is LoginPollResult.Success -> _uiState.value = LoginUiState.SignedIn
                 LoginPollResult.TimedOut -> _uiState.value = LoginUiState.TimedOut
-                LoginPollResult.Pending -> Unit
             }
         }
     }

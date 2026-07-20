@@ -7,7 +7,6 @@ sealed interface LoginStartResult {
 }
 
 sealed interface LoginPollResult {
-    data object Pending : LoginPollResult
     data object TimedOut : LoginPollResult
     data class Success(val userId: String?) : LoginPollResult
 }
@@ -38,12 +37,13 @@ class AuthRepository(
     suspend fun awaitAccountLogin(challenge: PkceUtil.LoginChallenge): LoginPollResult {
         val result = deepLinkAuthClient.pollForSession(challenge) ?: return LoginPollResult.TimedOut
         val accessToken = result.accessToken ?: return LoginPollResult.TimedOut
+        val userId = JwtUtil.subjectOrNull(accessToken)
         tokenStore.saveAccountSession(
             accessToken = accessToken,
             refreshToken = result.refreshToken,
-            userId = result.authId,
+            userId = userId,
         )
-        return LoginPollResult.Success(result.authId)
+        return LoginPollResult.Success(userId)
     }
 
     fun signInWithApiKey(apiKey: String) {
@@ -58,7 +58,7 @@ class AuthRepository(
         tokenStore.saveAccountSession(
             accessToken = newAccessToken,
             refreshToken = refreshed.refreshToken ?: refreshToken,
-            userId = current.userId,
+            userId = JwtUtil.subjectOrNull(newAccessToken) ?: current.userId,
         )
         return true
     }

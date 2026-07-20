@@ -11,6 +11,10 @@ import java.util.UUID
  * the client picks a uuid and a random verifier, sends sha256(verifier) as the
  * "challenge" to https://cursor.com/loginDeepControl, and later exchanges the
  * verifier for a token by polling api2.cursor.sh/auth/poll?uuid=...&verifier=...
+ *
+ * Verifier/challenge generation matches the reference implementation in
+ * schultzp2020/pi-extensions (packages/pi-cursor/src/pkce.ts): 32 random bytes,
+ * base64url with no padding - not an arbitrary length/truncation scheme.
  */
 object PkceUtil {
 
@@ -18,17 +22,15 @@ object PkceUtil {
 
     fun generate(): LoginChallenge {
         val uuid = UUID.randomUUID().toString()
-        val verifier = randomUrlSafeString(43)
+        val verifier = randomVerifier()
         val challenge = sha256Base64Url(verifier)
         return LoginChallenge(uuid = uuid, verifier = verifier, challenge = challenge)
     }
 
-    private fun randomUrlSafeString(length: Int): String {
-        val random = SecureRandom()
-        val bytes = ByteArray(length)
-        random.nextBytes(bytes)
+    private fun randomVerifier(): String {
+        val bytes = ByteArray(32)
+        SecureRandom().nextBytes(bytes)
         return Base64.encodeToString(bytes, Base64.URL_SAFE or Base64.NO_WRAP or Base64.NO_PADDING)
-            .take(length)
     }
 
     private fun sha256Base64Url(input: String): String {

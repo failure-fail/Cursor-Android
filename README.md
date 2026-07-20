@@ -28,12 +28,17 @@ that browser session hands back an access/refresh token pair. This app does exac
 A "sign in with an API key" fallback is also available in Settings for anyone who'd rather use a
 scoped personal/service key from the Cursor dashboard instead of a full account session.
 
-**Caveat, stated plainly:** the `/auth/poll` and `/oauth/token` request/response shapes come from
-community reverse-engineering of the desktop app's own traffic (there's no public spec for them),
-so they can break if Cursor changes that internal protocol. The rest of the app - everything under
-`v1/agents/...` - is Cursor's officially documented, versioned Background/Cloud Agents API
-(`cursor.com/docs/api`), which is what the official iOS app itself is built on for exactly this
-"drive an agent from your phone" use case.
+**Caveat, stated plainly:** the `/auth/poll` and refresh (`/auth/exchange_user_api_key`) request/
+response shapes come from community reverse-engineering of the desktop app's own traffic (there's
+no public spec for them), so they can break if Cursor changes that internal protocol. Verified
+against a working open-source implementation (schultzp2020/pi-extensions' `pi-cursor` package) and
+against the live endpoints directly: `cursor.com/loginDeepControl` needs a `redirectTarget=cli`
+query param or the browser-side login never actually completes the handoff (an earlier version of
+this app was missing it, which is why sign-in didn't work); `/auth/poll` returns plain `404` while
+waiting, not any other shape, and only 200s once the browser step is done. The rest of the app -
+everything under `v1/agents/...` - is Cursor's officially documented, versioned Background/Cloud
+Agents API (`cursor.com/docs/api`), which is what the official iOS app itself is built on for
+exactly this "drive an agent from your phone" use case.
 
 ## Features
 

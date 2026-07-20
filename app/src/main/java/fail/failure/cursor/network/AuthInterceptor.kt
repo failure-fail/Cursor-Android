@@ -3,37 +3,26 @@ package fail.failure.cursor.network
 import fail.failure.cursor.auth.TokenStore
 import okhttp3.Interceptor
 import okhttp3.Response
-import java.net.URLEncoder
 
 /**
- * Attaches whichever credential we have. Precedence: pasted API key first (it's the
- * officially supported way to call api.cursor.com), falling back to the account session
- * token obtained from the desktop-style login flow, sent both as a bearer token and as the
- * WorkosCursorSessionToken cookie the web dashboard / api2 host expect.
+ * Attaches whichever credential we have as a bearer token - Cursor's documented API accepts
+ * either a personal/service API key or (per the same shape) an account access token this way.
+ * An earlier version also sent a guessed `WorkosCursorSessionToken` cookie for extra
+ * compatibility; that was unverified and dropped; a malformed cookie is exactly the kind of
+ * thing that would make the server reject requests outright, and it wasn't confirmed necessary.
  */
 class AuthInterceptor(private val tokenStore: TokenStore) : Interceptor {
 
     override fun intercept(chain: Interceptor.Chain): Response {
         val session = tokenStore.session.value
-        val builder = chain.request().newBuilder()
+        val token = session.apiKey?.takeIf { it.isNotBlank() } ?: session.accessToken
 
-        val apiKey = session.apiKey
-        val accessToken = session.accessToken
-
-        when {
-            !apiKey.isNullOrBlank() -> {
-                builder.header("Authorization", "Bearer $apiKey")
-            }
-            !accessToken.isNullOrBlank() -> {
-                builder.header("Authorization", "Bearer $accessToken")
-                val userId = session.userId
-                if (!userId.isNullOrBlank()) {
-                    val cookieValue = URLEncoder.encode("$userId::$accessToken", "UTF-8")
-                    builder.addHeader("Cookie", "WorkosCursorSessionToken=$cookieValue")
-                }
-            }
+        val request = if (token.isNullOrBlank()) {
+            chain.request()
+        } else {
+            chain.request().newBuilder().header("Authorization", "Bearer $token").build()
         }
 
-        return chain.proceed(builder.build())
+        return chain.proceed(request)
     }
 }
