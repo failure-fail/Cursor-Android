@@ -11,6 +11,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Archive
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -27,7 +31,9 @@ import fail.failure.cursor.ui.theme.CursorTextSecondary
 
 /** Mirrors the "All Repos → Recents" row style from Cursor's own mobile UI: a small status dot,
  * a bold title, and a "status · repo" secondary line - rather than a boxy title+badge layout.
- * Rendered as a frosted [GlassCard] rather than a flat surface fill. Long-press toggles [pinned]. */
+ * Rendered as a frosted [GlassCard] rather than a flat surface fill. Long-press toggles [pinned].
+ * Archiving is a plain tap on the trailing icon rather than a swipe gesture - explicit and
+ * discoverable instead of a hidden drag interaction. */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun AgentCard(
@@ -36,6 +42,7 @@ fun AgentCard(
     modifier: Modifier = Modifier,
     pinned: Boolean = false,
     onLongClick: (() -> Unit)? = null,
+    onArchive: (() -> Unit)? = null,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
@@ -88,6 +95,11 @@ fun AgentCard(
             }
             if (agent.env?.type == EnvInput.TYPE_MACHINE) {
                 Text("💻", style = MaterialTheme.typography.bodyMedium)
+            }
+            if (onArchive != null) {
+                IconButton(onClick = onArchive) {
+                    Icon(Icons.Filled.Archive, contentDescription = "Archive", tint = CursorTextSecondary)
+                }
             }
         }
     }
