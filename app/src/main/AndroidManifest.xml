@@ -33,7 +33,7 @@
             <!--
                 Optional deep-link callback host for Grok Build OAuth. Primary
                 sign-in uses the RFC 8628 device-code flow (auth.x.ai), same as
-                `grok login --device-auth`. This scheme is reserved for future
+                grok login device-auth. This scheme is reserved for future
                 custom-tab / App Links callbacks if a mobile redirect URI is
                 registered for the Grok Build OAuth client.
             -->

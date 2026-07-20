@@ -20,16 +20,17 @@ import fail.failure.grok.network.model.SandboxStartRequest
 import fail.failure.grok.network.model.toAgent
 
 /**
- * Compatibility facade: keeps the former Grok Agents ViewModel call shape
- * while talking to Grok Build sandbox + models endpoints.
+ * Compatibility facade: keeps the former Agents ViewModel call shape while
+ * talking to Grok Build sandbox + models endpoints.
  */
 class GrokBackend(private val service: GrokApiService) {
 
     suspend fun me(): ApiKeyInfo {
         val settings = runCatching { service.settings() }.getOrNull()
         return ApiKeyInfo(
-            apiKeyName = "Grok Build",
-            userEmail = settings?.email,
+            name = "Grok Build",
+            email = settings?.email,
+            userId = settings?.userId,
         )
     }
 
@@ -42,7 +43,11 @@ class GrokBackend(private val service: GrokApiService) {
 
     suspend fun repositories(): RepositoryListResponse = RepositoryListResponse()
 
-    suspend fun listAgents(limit: Int = 50, cursor: String? = null, includeArchived: Boolean = false): AgentListResponse {
+    suspend fun listAgents(
+        limit: Int = 50,
+        cursor: String? = null,
+        includeArchived: Boolean = false,
+    ): AgentListResponse {
         val page = cursor?.toIntOrNull()
         val response = service.listEnvironments(page = page, pageSize = limit)
         val agents = response.environments.mapNotNull { it.toAgent() }
@@ -74,7 +79,10 @@ class GrokBackend(private val service: GrokApiService) {
                     branch = request.repos?.firstOrNull()?.startingRef,
                 ),
             )
-            Run(id = started.sessionId, status = "STARTING", createdAt = null)
+            Run(
+                id = started.sessionId.ifBlank { started.sandboxId },
+                status = "STARTING",
+            )
         }.getOrNull()
         return CreateAgentResponse(agent = agent, run = run)
     }
@@ -99,10 +107,7 @@ class GrokBackend(private val service: GrokApiService) {
         )
     }
 
-    suspend fun listRuns(id: String, limit: Int = 50): RunListResponse {
-        // Sandbox API has no run history list; surface the latest session id on the agent if any.
-        return RunListResponse()
-    }
+    suspend fun listRuns(id: String, limit: Int = 50): RunListResponse = RunListResponse()
 
     suspend fun getRun(id: String, runId: String): Run {
         val status = service.sessionStatus(runId)
@@ -113,20 +118,16 @@ class GrokBackend(private val service: GrokApiService) {
         )
     }
 
-    suspend fun cancelRun(id: String, runId: String) {
-        // No direct cancel endpoint exposed here; hibernate/terminate live on other paths.
-    }
+    suspend fun cancelRun(id: String, runId: String) = Unit
 
     suspend fun getUsage(id: String, runId: String? = null): AgentUsageResponse = AgentUsageResponse()
 
     suspend fun listArtifacts(id: String): ArtifactListResponse = ArtifactListResponse()
 
     suspend fun getArtifactDownloadUrl(id: String, path: String): ArtifactDownloadResponse =
-        ArtifactDownloadResponse()
+        ArtifactDownloadResponse(url = "")
 
-    suspend fun archiveAgent(id: String) {
-        // No archive concept — delete is the destructive path; keep as no-op for UI affordance.
-    }
+    suspend fun archiveAgent(id: String) = Unit
 
     suspend fun unarchiveAgent(id: String) = Unit
 

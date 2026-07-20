@@ -3,40 +3,12 @@ package fail.failure.grok.network.model
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
-/** UI-facing agent row — mapped from a Grok Build sandbox environment. */
-@Serializable
-data class Agent(
-    val id: String,
-    val name: String? = null,
-    val status: String? = null,
-    @SerialName("latestRunId") val latestRunId: String? = null,
-    val repos: List<RepoInput>? = null,
-    @SerialName("autoCreatePR") val autoCreatePr: Boolean? = null,
-    @SerialName("createdAt") val createdAt: String? = null,
-    @SerialName("updatedAt") val updatedAt: String? = null,
-    val archived: Boolean? = null,
-    val env: EnvInput? = null,
-    val url: String? = null,
-    val description: String? = null,
-)
-
 @Serializable
 data class RepoInput(
     val url: String? = null,
     val startingRef: String? = null,
     val prUrl: String? = null,
 )
-
-@Serializable
-data class EnvInput(
-    val type: String,
-    val keepAwake: Boolean? = null,
-) {
-    companion object {
-        const val TYPE_CLOUD = "cloud"
-        const val TYPE_MACHINE = "machine"
-    }
-}
 
 @Serializable
 data class CreateAgentRequest(
@@ -56,7 +28,21 @@ data class CreateAgentRequest(
 data class PromptInput(val text: String, val images: List<ImageInput>? = null)
 
 @Serializable
-data class ImageInput(val data: String, val mediaType: String)
+data class ImageInput(
+    val data: String,
+    val mediaType: String,
+)
+
+@Serializable
+data class EnvInput(
+    val type: String,
+    val keepAwake: Boolean? = null,
+) {
+    companion object {
+        const val TYPE_CLOUD = "cloud"
+        const val TYPE_MACHINE = "machine"
+    }
+}
 
 @Serializable
 data class ModelSelectionInput(
@@ -65,13 +51,22 @@ data class ModelSelectionInput(
 )
 
 @Serializable
-data class ModelParamInput(val id: String, val value: String)
+data class ModelParamInput(
+    val id: String,
+    val value: String,
+)
 
 @Serializable
-data class McpServerInput(val name: String, val url: String)
+data class McpServerInput(
+    val name: String,
+    val url: String,
+)
 
 @Serializable
-data class CustomSubagentInput(val name: String, val prompt: String)
+data class CustomSubagentInput(
+    val name: String,
+    val prompt: String,
+)
 
 @Serializable
 data class CreateAgentResponse(
@@ -79,10 +74,27 @@ data class CreateAgentResponse(
     val run: Run? = null,
 )
 
+/** UI-facing agent row — mapped from a Grok Build sandbox environment. */
+@Serializable
+data class Agent(
+    val id: String,
+    val name: String? = null,
+    val status: String? = null,
+    @SerialName("latestRunId") val latestRunId: String? = null,
+    val repos: List<RepoInput>? = null,
+    @SerialName("autoCreatePR") val autoCreatePr: Boolean? = null,
+    @SerialName("createdAt") val createdAt: String? = null,
+    @SerialName("updatedAt") val updatedAt: String? = null,
+    val archived: Boolean? = null,
+    val env: EnvInput? = null,
+    val url: String? = null,
+    val description: String? = null,
+)
+
 @Serializable
 data class AgentListResponse(
     @SerialName("items") val agents: List<Agent> = emptyList(),
-    @SerialName("nextGrok") val cursor: String? = null,
+    @SerialName("nextCursor") val cursor: String? = null,
 )
 
 @Serializable
@@ -94,54 +106,37 @@ data class GitBranch(
 
 @Serializable
 data class GitInfo(
-    val branches: List<GitBranch> = emptyList(),
+    val branches: List<GitBranch>? = null,
 )
 
 @Serializable
 data class Run(
     val id: String,
-    val status: String? = null,
+    val status: String,
     @SerialName("createdAt") val createdAt: String? = null,
-    @SerialName("updatedAt") val updatedAt: String? = null,
+    @SerialName("durationMs") val durationMs: Long? = null,
     val result: String? = null,
     val git: GitInfo? = null,
 )
 
 @Serializable
-data class CreateRunRequest(val prompt: PromptInput)
+data class RunListResponse(
+    @SerialName("items") val runs: List<Run> = emptyList(),
+    @SerialName("nextCursor") val cursor: String? = null,
+)
 
 @Serializable
 data class CreateRunResponse(val run: Run)
 
 @Serializable
-data class RunListResponse(
-    @SerialName("items") val runs: List<Run> = emptyList(),
-)
-
-@Serializable
-data class ModelInfo(
-    val id: String,
-    val displayName: String? = null,
-    val params: List<ModelParamDef>? = null,
-)
-
-@Serializable
-data class ModelParamDef(
-    val id: String,
-    val displayName: String? = null,
-    val type: String? = null,
-    val values: List<String>? = null,
-)
-
-@Serializable
-data class ModelListResponse(
-    @SerialName("items") val models: List<ModelInfo> = emptyList(),
+data class CreateRunRequest(
+    val prompt: PromptInput,
+    val mode: String? = null,
 )
 
 @Serializable
 data class RepositoryInfo(
-    val url: String? = null,
-    val name: String? = null,
+    val url: String,
 )
 
 @Serializable
@@ -150,32 +145,75 @@ data class RepositoryListResponse(
 )
 
 @Serializable
+data class ModelParamValue(
+    val value: String,
+    val displayName: String? = null,
+)
+
+@Serializable
+data class ModelParameter(
+    val id: String,
+    val displayName: String? = null,
+    val values: List<ModelParamValue>? = null,
+)
+
+@Serializable
+data class ModelInfo(
+    val id: String,
+    val displayName: String? = null,
+    val aliases: List<String>? = null,
+    val parameters: List<ModelParameter>? = null,
+)
+
+@Serializable
+data class ModelListResponse(
+    @SerialName("items") val models: List<ModelInfo> = emptyList(),
+)
+
+@Serializable
 data class ApiKeyInfo(
-    val apiKeyName: String? = null,
-    val userEmail: String? = null,
+    @SerialName("apiKeyName") val name: String? = null,
     @SerialName("createdAt") val createdAt: String? = null,
+    val userId: String? = null,
+    @SerialName("userEmail") val email: String? = null,
+)
+
+@Serializable
+data class UsageTotals(
+    @SerialName("inputTokens") val inputTokens: Long? = null,
+    @SerialName("outputTokens") val outputTokens: Long? = null,
+    @SerialName("totalTokens") val totalTokens: Long? = null,
+)
+
+@Serializable
+data class RunUsage(
+    val runId: String? = null,
+    @SerialName("inputTokens") val inputTokens: Long? = null,
+    @SerialName("outputTokens") val outputTokens: Long? = null,
+    @SerialName("totalTokens") val totalTokens: Long? = null,
 )
 
 @Serializable
 data class AgentUsageResponse(
-    val totalInputTokens: Long? = null,
-    val totalOutputTokens: Long? = null,
+    val totalUsage: UsageTotals? = null,
+    val runs: List<RunUsage> = emptyList(),
 )
 
 @Serializable
 data class Artifact(
     val path: String,
     val sizeBytes: Long? = null,
+    val updatedAt: String? = null,
 )
 
 @Serializable
 data class ArtifactListResponse(
-    @SerialName("items") val artifacts: List<Artifact> = emptyList(),
+    val artifacts: List<Artifact> = emptyList(),
 )
 
 @Serializable
 data class ArtifactDownloadResponse(
-    val url: String? = null,
+    val url: String,
 )
 
 // --- Wire types for cli-chat-proxy sandbox API (camelCase) ---
