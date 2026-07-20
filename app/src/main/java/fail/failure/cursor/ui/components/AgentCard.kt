@@ -46,7 +46,7 @@ fun AgentCard(agent: Agent, onClick: () -> Unit, modifier: Modifier = Modifier) 
                 overflow = TextOverflow.Ellipsis,
             )
             val repo = agent.repos?.firstOrNull()
-            val repoLabel = repo?.repositoryUrl ?: repo?.let { "${it.owner}/${it.repo}" } ?: "No repository"
+            val repoLabel = repo?.url?.removePrefix("https://github.com/") ?: "No repository"
             Text(
                 text = "${(agent.status ?: "unknown").replaceFirstChar { it.uppercase() }} · $repoLabel",
                 style = MaterialTheme.typography.bodyMedium,

@@ -3,12 +3,15 @@ package fail.failure.cursor.network.model
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
+/** Matches the documented `repos[]` shape exactly (cursor.com/docs/cloud-agent/api/endpoints):
+ * `{ url, startingRef?, prUrl? }` - there's no `owner`/`repo` pair in the real API, only a full
+ * repository URL. An earlier version guessed an `owner`/`repo` shape that doesn't exist in the
+ * documented schema at all, so every agent was created with no repository actually attached. */
 @Serializable
 data class RepoInput(
-    val owner: String? = null,
-    val repo: String? = null,
-    @SerialName("repositoryUrl") val repositoryUrl: String? = null,
-    val ref: String? = null,
+    val url: String? = null,
+    val startingRef: String? = null,
+    val prUrl: String? = null,
 )
 
 @Serializable
@@ -17,7 +20,7 @@ data class CreateAgentRequest(
     val model: ModelSelectionInput? = null,
     val name: String? = null,
     val repos: List<RepoInput>? = null,
-    @SerialName("autoCreatePr") val autoCreatePr: Boolean? = null,
+    @SerialName("autoCreatePR") val autoCreatePr: Boolean? = null,
     @SerialName("workOnCurrentBranch") val workOnCurrentBranch: Boolean? = null,
     val env: EnvInput? = null,
     val envVars: Map<String, String>? = null,
@@ -57,7 +60,14 @@ data class EnvInput(
 @Serializable
 data class ModelSelectionInput(
     val id: String,
-    val parameters: Map<String, String>? = null,
+    /** `params[]` per the documented schema - a list of `{id, value}` pairs, not a JSON object. */
+    val params: List<ModelParamInput>? = null,
+)
+
+@Serializable
+data class ModelParamInput(
+    val id: String,
+    val value: String,
 )
 
 @Serializable
@@ -85,7 +95,7 @@ data class Agent(
     val status: String? = null,
     @SerialName("latestRunId") val latestRunId: String? = null,
     val repos: List<RepoInput>? = null,
-    @SerialName("autoCreatePr") val autoCreatePr: Boolean? = null,
+    @SerialName("autoCreatePR") val autoCreatePr: Boolean? = null,
     @SerialName("createdAt") val createdAt: String? = null,
     val archived: Boolean? = null,
     val env: EnvInput? = null,
@@ -94,7 +104,7 @@ data class Agent(
 @Serializable
 data class AgentListResponse(
     val agents: List<Agent> = emptyList(),
-    val cursor: String? = null,
+    @SerialName("nextCursor") val cursor: String? = null,
 )
 
 @Serializable

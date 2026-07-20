@@ -10,6 +10,7 @@ import fail.failure.cursor.network.model.EnvInput
 import fail.failure.cursor.network.model.ImageInput
 import fail.failure.cursor.network.model.McpServerInput
 import fail.failure.cursor.network.model.ModelInfo
+import fail.failure.cursor.network.model.ModelParamInput
 import fail.failure.cursor.network.model.ModelSelectionInput
 import fail.failure.cursor.network.model.PromptInput
 import fail.failure.cursor.network.model.RepoInput
@@ -177,11 +178,12 @@ class NewAgentViewModel(
                     model = state.selectedModel?.let {
                         ModelSelectionInput(
                             id = it.id,
-                            parameters = state.selectedModelParams.ifEmpty { null },
+                            params = state.selectedModelParams.ifEmpty { null }
+                                ?.map { (name, value) -> ModelParamInput(id = name, value = value) },
                         )
                     },
                     repos = state.selectedRepo?.let {
-                        listOf(RepoInput(owner = it.owner, repo = it.repo))
+                        listOf(RepoInput(url = "https://github.com/${it.owner}/${it.repo}"))
                     },
                     autoCreatePr = true,
                     env = EnvInput(
