@@ -160,14 +160,25 @@ fun NewAgentScreen(
             }
 
             item {
-                OutlinedTextField(
-                    value = state.prompt,
-                    onValueChange = viewModel::updatePrompt,
-                    label = { Text("What should the agent do?") },
-                    shape = CursorTextFieldShape,
-                    colors = cursorFilledTextFieldColors(),
-                    modifier = Modifier.fillMaxWidth().height(160.dp),
-                )
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        items(promptTemplates) { template ->
+                            FilterChip(
+                                selected = false,
+                                onClick = { viewModel.updatePrompt(template.prompt) },
+                                label = { Text("${template.emoji} ${template.label}") },
+                            )
+                        }
+                    }
+                    OutlinedTextField(
+                        value = state.prompt,
+                        onValueChange = viewModel::updatePrompt,
+                        label = { Text("What should the agent do?") },
+                        shape = CursorTextFieldShape,
+                        colors = cursorFilledTextFieldColors(),
+                        modifier = Modifier.fillMaxWidth().height(160.dp),
+                    )
+                }
             }
 
             item {
@@ -375,3 +386,14 @@ private fun KeyValueEditor(
         TextButton(onClick = onAdd) { Text("+ Add") }
     }
 }
+
+private data class PromptTemplate(val emoji: String, val label: String, val prompt: String)
+
+private val promptTemplates = listOf(
+    PromptTemplate("🐛", "Fix a bug", "Find and fix the bug in "),
+    PromptTemplate("✅", "Add tests", "Add test coverage for "),
+    PromptTemplate("♻️", "Refactor", "Refactor "),
+    PromptTemplate("📝", "Write docs", "Write documentation for "),
+    PromptTemplate("⬆️", "Update deps", "Update outdated dependencies and fix any breakage."),
+    PromptTemplate("🔍", "Code review", "Review the codebase and list any correctness or security issues you find."),
+)

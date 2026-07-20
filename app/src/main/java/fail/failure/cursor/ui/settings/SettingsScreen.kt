@@ -40,8 +40,13 @@ import fail.failure.cursor.ui.theme.CursorTextSecondary
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen(authRepository: AuthRepository, onSignedOut: () -> Unit) {
+fun SettingsScreen(
+    authRepository: AuthRepository,
+    viewModel: SettingsViewModel,
+    onSignedOut: () -> Unit,
+) {
     val session by authRepository.session.collectAsState()
+    val settingsState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
     val versionName = remember {
         try {
@@ -51,8 +56,9 @@ fun SettingsScreen(authRepository: AuthRepository, onSignedOut: () -> Unit) {
         }
     }
 
+    val me = settingsState.apiKeyInfo
     val signInMethod = if (session.apiKey != null) "Personal API key" else "Cursor account"
-    val identity = session.userId ?: session.apiKey?.take(10)?.plus("…") ?: "Signed in"
+    val identity = me?.email ?: session.userId ?: session.apiKey?.take(10)?.plus("…") ?: "Signed in"
     val initial = identity.firstOrNull { it.isLetterOrDigit() }?.uppercaseChar() ?: '?'
 
     AmbientBackground(modifier = Modifier.fillMaxSize()) {
@@ -97,6 +103,8 @@ fun SettingsScreen(authRepository: AuthRepository, onSignedOut: () -> Unit) {
             GlassCard(modifier = Modifier.fillMaxWidth(), contentPadding = 0.dp) {
                 Column {
                     SettingsRow(label = "Credential type", value = signInMethod)
+                    me?.email?.let { SettingsRow(label = "Email", value = it) }
+                    me?.name?.let { SettingsRow(label = "Key name", value = it) }
                     session.userId?.let { SettingsRow(label = "Account ID", value = it) }
                     session.apiKey?.let { SettingsRow(label = "API key", value = "${it.take(10)}••••••") }
                 }

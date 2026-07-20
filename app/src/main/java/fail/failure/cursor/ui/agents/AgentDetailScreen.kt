@@ -1,5 +1,8 @@
 package fail.failure.cursor.ui.agents
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Intent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -17,6 +20,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
@@ -25,10 +30,12 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -45,6 +52,7 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
 import androidx.browser.customtabs.CustomTabsIntent
 import androidx.core.net.toUri
+import fail.failure.cursor.network.model.Run
 import fail.failure.cursor.ui.components.GlassCard
 import fail.failure.cursor.ui.components.MarkdownText
 import fail.failure.cursor.ui.components.PillInputBar
@@ -69,6 +77,7 @@ fun AgentDetailScreen(
     var followUp by remember { mutableStateOf("") }
     var showMenu by remember { mutableStateOf(false) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
+    var showRunHistory by remember { mutableStateOf(false) }
 
     val isRunning = state.runStatus?.lowercase() in setOf("running", "starting", "pending")
     val isArchived = state.agent?.archived == true
@@ -102,6 +111,42 @@ fun AgentDetailScreen(
                             onClick = {
                                 showMenu = false
                                 onOpenUsage()
+                            },
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Run history") },
+                            onClick = {
+                                showMenu = false
+                                viewModel.loadRunHistory()
+                                showRunHistory = true
+                            },
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Copy agent ID") },
+                            leadingIcon = { Icon(Icons.Filled.ContentCopy, contentDescription = null) },
+                            onClick = {
+                                showMenu = false
+                                val clipboard = context.getSystemService(ClipboardManager::class.java)
+                                clipboard?.setPrimaryClip(ClipData.newPlainText("Agent ID", state.agent?.id.orEmpty()))
+                            },
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Share") },
+                            leadingIcon = { Icon(Icons.Filled.Share, contentDescription = null) },
+                            onClick = {
+                                showMenu = false
+                                val shareUrl = state.gitInfo?.branches?.firstOrNull()?.prUrl
+                                    ?: state.agent?.url
+                                    ?: state.agent?.id.orEmpty()
+                                context.startActivity(
+                                    Intent.createChooser(
+                                        Intent(Intent.ACTION_SEND).apply {
+                                            type = "text/plain"
+                                            putExtra(Intent.EXTRA_TEXT, shareUrl)
+                                        },
+                                        null,
+                                    ),
+                                )
                             },
                         )
                         DropdownMenuItem(
@@ -184,6 +229,64 @@ fun AgentDetailScreen(
             },
             dismissButton = { TextButton(onClick = { showDeleteConfirm = false }) { Text("Cancel") } },
         )
+    }
+
+    if (showRunHistory) {
+        RunHistorySheet(
+            runs = state.runHistory,
+            isLoading = state.isLoadingHistory,
+            onDismiss = { showRunHistory = false },
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun RunHistorySheet(runs: List<Run>, isLoading: Boolean, onDismiss: () -> Unit) {
+    val sheetState = rememberModalBottomSheetState()
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
+        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+            Text("Run history", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(bottom = 12.dp))
+            when {
+                isLoading -> CircularProgressIndicator(modifier = Modifier.padding(bottom = 24.dp))
+                runs.isEmpty() -> Text(
+                    "No runs yet.",
+                    color = CursorTextSecondary,
+                    modifier = Modifier.padding(bottom = 24.dp),
+                )
+                else -> LazyColumn(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    contentPadding = PaddingValues(bottom = 24.dp),
+                ) {
+                    items(runs, key = { it.id }) { run -> RunHistoryRow(run) }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun RunHistoryRow(run: Run) {
+    GlassCard(modifier = Modifier.fillMaxWidth(), contentPadding = 14.dp) {
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                StatusBadge(status = run.status)
+                run.durationMs?.let {
+                    Text(
+                        "${it / 1000}s",
+                        color = CursorTextSecondary,
+                        style = MaterialTheme.typography.labelSmall,
+                    )
+                }
+            }
+            run.createdAt?.let {
+                Text(it, color = CursorTextSecondary, style = MaterialTheme.typography.labelSmall)
+            }
+            run.result?.let {
+                Text(it, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 4.dp))
+            }
+        }
     }
 }
 

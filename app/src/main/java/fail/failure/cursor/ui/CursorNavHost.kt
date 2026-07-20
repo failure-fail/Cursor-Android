@@ -36,6 +36,7 @@ import fail.failure.cursor.ui.auth.OnboardingScreen
 import fail.failure.cursor.ui.components.BottomNavItem
 import fail.failure.cursor.ui.components.CursorBottomBar
 import fail.failure.cursor.ui.settings.SettingsScreen
+import fail.failure.cursor.ui.settings.SettingsViewModel
 
 private object Routes {
     const val ONBOARDING = "onboarding"
@@ -127,7 +128,9 @@ fun CursorNavHost(app: CursorApp, requestedDestination: String? = null) {
 
         composable(Routes.AGENTS) {
             val agentsViewModel: AgentsViewModel = viewModel(
-                factory = LambdaViewModelFactory { AgentsViewModel(app.apiClient, app.authRepository) },
+                factory = LambdaViewModelFactory {
+                    AgentsViewModel(app.apiClient, app.authRepository, app.pinnedAgentsStore)
+                },
             )
             AgentListScreen(
                 viewModel = agentsViewModel,
@@ -172,8 +175,12 @@ fun CursorNavHost(app: CursorApp, requestedDestination: String? = null) {
         }
 
         composable(Routes.SETTINGS) {
+            val settingsViewModel: SettingsViewModel = viewModel(
+                factory = LambdaViewModelFactory { SettingsViewModel(app.apiClient, app.authRepository) },
+            )
             SettingsScreen(
                 authRepository = app.authRepository,
+                viewModel = settingsViewModel,
                 onSignedOut = {
                     navController.navigate(Routes.LOGIN) {
                         popUpTo(0)

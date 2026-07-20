@@ -2,6 +2,7 @@ package fail.failure.cursor.ui.agents
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import fail.failure.cursor.agents.PinnedAgentsStore
 import fail.failure.cursor.auth.AuthRepository
 import fail.failure.cursor.network.ApiClient
 import fail.failure.cursor.network.cursorApiErrorMessage
@@ -11,6 +12,13 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.time.Instant
+
+enum class AgentSortOrder(val label: String) {
+    NEWEST("Newest first"),
+    OLDEST("Oldest first"),
+    NAME("Name"),
+}
 
 data class AgentsUiState(
     val agents: List<Agent> = emptyList(),
@@ -22,23 +30,40 @@ data class AgentsUiState(
     val searchQuery: String = "",
     /** Lowercase status, or null for "All". */
     val statusFilter: String? = null,
+    val sortOrder: AgentSortOrder = AgentSortOrder.NEWEST,
+    val pinnedIds: Set<String> = emptySet(),
 ) {
     val filteredAgents: List<Agent>
-        get() = agents.filter { agent ->
-            val matchesQuery = searchQuery.isBlank() ||
-                (agent.name ?: agent.id).contains(searchQuery, ignoreCase = true) ||
-                agent.repos?.firstOrNull()?.url?.contains(searchQuery, ignoreCase = true) == true
-            val matchesStatus = statusFilter == null || agent.status?.lowercase() == statusFilter
-            matchesQuery && matchesStatus
+        get() {
+            val filtered = agents.filter { agent ->
+                val matchesQuery = searchQuery.isBlank() ||
+                    (agent.name ?: agent.id).contains(searchQuery, ignoreCase = true) ||
+                    agent.repos?.firstOrNull()?.url?.contains(searchQuery, ignoreCase = true) == true
+                val matchesStatus = statusFilter == null || agent.status?.lowercase() == statusFilter
+                matchesQuery && matchesStatus
+            }
+            val sorted = when (sortOrder) {
+                AgentSortOrder.NEWEST -> filtered.sortedByDescending { it.createdAt?.let(::parseInstantOrNull) }
+                AgentSortOrder.OLDEST -> filtered.sortedBy { it.createdAt?.let(::parseInstantOrNull) }
+                AgentSortOrder.NAME -> filtered.sortedBy { (it.name ?: it.id).lowercase() }
+            }
+            return sorted.sortedByDescending { it.id in pinnedIds }
         }
+}
+
+private fun parseInstantOrNull(iso: String): Instant? = try {
+    Instant.parse(iso)
+} catch (_: Exception) {
+    null
 }
 
 class AgentsViewModel(
     private val apiClient: ApiClient,
     private val authRepository: AuthRepository,
+    private val pinnedAgentsStore: PinnedAgentsStore,
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(AgentsUiState(isLoading = true))
+    private val _uiState = MutableStateFlow(AgentsUiState(isLoading = true, pinnedIds = pinnedAgentsStore.pinnedIds()))
     val uiState: StateFlow<AgentsUiState> = _uiState.asStateFlow()
 
     init {
@@ -90,6 +115,16 @@ class AgentsViewModel(
 
     fun updateStatusFilter(status: String?) {
         _uiState.value = _uiState.value.copy(statusFilter = status)
+    }
+
+    fun updateSortOrder(order: AgentSortOrder) {
+        _uiState.value = _uiState.value.copy(sortOrder = order)
+    }
+
+    fun togglePin(agentId: String) {
+        val pinned = agentId !in _uiState.value.pinnedIds
+        pinnedAgentsStore.setPinned(agentId, pinned)
+        _uiState.value = _uiState.value.copy(pinnedIds = pinnedAgentsStore.pinnedIds())
     }
 
     /** Optimistically drops [agentId] from the list (the swipe gesture already animated it away)

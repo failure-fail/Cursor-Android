@@ -3,7 +3,8 @@ package fail.failure.cursor.ui.components
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Column
@@ -26,9 +27,16 @@ import fail.failure.cursor.ui.theme.CursorTextSecondary
 
 /** Mirrors the "All Repos → Recents" row style from Cursor's own mobile UI: a small status dot,
  * a bold title, and a "status · repo" secondary line - rather than a boxy title+badge layout.
- * Rendered as a frosted [GlassCard] rather than a flat surface fill. */
+ * Rendered as a frosted [GlassCard] rather than a flat surface fill. Long-press toggles [pinned]. */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun AgentCard(agent: Agent, onClick: () -> Unit, modifier: Modifier = Modifier) {
+fun AgentCard(
+    agent: Agent,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    pinned: Boolean = false,
+    onLongClick: (() -> Unit)? = null,
+) {
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
@@ -41,7 +49,12 @@ fun AgentCard(agent: Agent, onClick: () -> Unit, modifier: Modifier = Modifier) 
         modifier = modifier
             .fillMaxWidth()
             .scale(scale)
-            .clickable(interactionSource = interactionSource, indication = null, onClick = onClick),
+            .combinedClickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick,
+                onLongClick = onLongClick,
+            ),
         contentPadding = 16.dp,
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -52,12 +65,17 @@ fun AgentCard(agent: Agent, onClick: () -> Unit, modifier: Modifier = Modifier) 
                 modifier = Modifier.padding(top = 6.dp, end = 10.dp),
             )
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = agent.name ?: agent.id,
-                    style = MaterialTheme.typography.titleMedium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (pinned) {
+                        Text("📌 ", style = MaterialTheme.typography.titleMedium)
+                    }
+                    Text(
+                        text = agent.name ?: agent.id,
+                        style = MaterialTheme.typography.titleMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
                 val repo = agent.repos?.firstOrNull()
                 val repoLabel = repo?.url?.removePrefix("https://github.com/") ?: "No repository"
                 Text(

@@ -8,6 +8,7 @@ import fail.failure.cursor.network.model.Agent
 import fail.failure.cursor.network.model.CreateRunRequest
 import fail.failure.cursor.network.model.GitInfo
 import fail.failure.cursor.network.model.PromptInput
+import fail.failure.cursor.network.model.Run
 import fail.failure.cursor.network.model.RunEvent
 import fail.failure.cursor.notification.Notifications
 import kotlinx.coroutines.Job
@@ -34,6 +35,8 @@ data class AgentDetailUiState(
     val isFollowUpSending: Boolean = false,
     val isActionRunning: Boolean = false,
     val error: String? = null,
+    val runHistory: List<Run> = emptyList(),
+    val isLoadingHistory: Boolean = false,
 )
 
 class AgentDetailViewModel(
@@ -137,6 +140,21 @@ class AgentDetailViewModel(
                 }
             } catch (_: Exception) {
                 // Best-effort; the transcript already reflects the terminal status.
+            }
+        }
+    }
+
+    fun loadRunHistory() {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoadingHistory = true)
+            try {
+                val runs = apiClient.service.listRuns(agentId).runs.sortedByDescending { it.createdAt }
+                _uiState.value = _uiState.value.copy(runHistory = runs, isLoadingHistory = false)
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isLoadingHistory = false,
+                    error = e.message ?: "Failed to load run history",
+                )
             }
         }
     }

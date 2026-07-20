@@ -99,6 +99,8 @@ data class Agent(
     @SerialName("createdAt") val createdAt: String? = null,
     val archived: Boolean? = null,
     val env: EnvInput? = null,
+    /** The cursor.com web dashboard link for this agent - confirmed present on `GET /v1/agents/{id}`. */
+    val url: String? = null,
 )
 
 /** Every Cursor list endpoint (agents, repositories, models) wraps its array as `items`, not a

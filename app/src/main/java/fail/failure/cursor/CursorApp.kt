@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
+import fail.failure.cursor.agents.PinnedAgentsStore
 import fail.failure.cursor.auth.AuthRepository
 import fail.failure.cursor.auth.DeepLinkAuthClient
 import fail.failure.cursor.auth.TokenStore
@@ -25,6 +26,8 @@ class CursorApp : Application() {
         private set
     lateinit var onboardingPrefs: OnboardingPrefs
         private set
+    lateinit var pinnedAgentsStore: PinnedAgentsStore
+        private set
 
     override fun onCreate() {
         super.onCreate()
@@ -32,6 +35,7 @@ class CursorApp : Application() {
         apiClient = ApiClient(tokenStore)
         authRepository = AuthRepository(tokenStore, DeepLinkAuthClient(OkHttpClient()))
         onboardingPrefs = OnboardingPrefs(this)
+        pinnedAgentsStore = PinnedAgentsStore(this)
         Notifications.ensureChannel(this)
         schedulePolling()
     }
