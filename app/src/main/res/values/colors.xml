@@ -1,0 +1,13 @@
+<resources>
+    <color name="cursor_bg">#0B0B0D</color>
+    <color name="cursor_surface">#18181B</color>
+    <color name="cursor_surface_raised">#222226</color>
+    <color name="cursor_accent">#4C8DFF</color>
+    <color name="cursor_text_primary">#F5F5F7</color>
+    <color name="cursor_text_secondary">#9A9AA2</color>
+    <color name="cursor_border">#2A2A2E</color>
+    <color name="cursor_success">#3DD68C</color>
+    <color name="cursor_warning">#F5A623</color>
+    <color name="cursor_error">#FF6B6B</color>
+    <color name="widget_bg">#18181B</color>
+</resources>
