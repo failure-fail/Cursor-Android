@@ -157,7 +157,7 @@ fun CursorNavHost(app: CursorApp, requestedDestination: String? = null) {
         composable(Routes.AGENT_DETAIL) { backStackEntry ->
             val agentId = backStackEntry.arguments?.getString("agentId") ?: return@composable
             val detailViewModel: AgentDetailViewModel = viewModel(
-                factory = LambdaViewModelFactory { AgentDetailViewModel(app.apiClient, agentId, app) },
+                factory = LambdaViewModelFactory { AgentDetailViewModel(app.apiClient, agentId, app, app.transcriptStore) },
             )
             AgentDetailScreen(
                 viewModel = detailViewModel,

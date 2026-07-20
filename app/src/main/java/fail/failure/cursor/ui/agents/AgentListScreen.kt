@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
@@ -23,7 +22,6 @@ import androidx.compose.material.icons.filled.Sort
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -52,18 +50,20 @@ import fail.failure.cursor.ui.components.AgentCard
 import fail.failure.cursor.ui.components.AgentCardSkeleton
 import fail.failure.cursor.ui.components.AmbientBackground
 import fail.failure.cursor.ui.components.ApiKeyRequiredCard
+import fail.failure.cursor.ui.components.SegmentOption
+import fail.failure.cursor.ui.components.SegmentedToggle
 import fail.failure.cursor.ui.components.StaggeredItem
 import fail.failure.cursor.ui.theme.CursorAccent
 import fail.failure.cursor.ui.theme.CursorBackground
 import fail.failure.cursor.ui.theme.CursorError
-import fail.failure.cursor.ui.theme.CursorFilterChipShape
 import fail.failure.cursor.ui.theme.CursorTextFieldShape
-import fail.failure.cursor.ui.theme.cursorFilterChipColors
 import fail.failure.cursor.ui.theme.CursorTextSecondary
 import fail.failure.cursor.ui.theme.cursorFilledTextFieldColors
 
+private const val STATUS_ALL = "all"
+
 private val statusFilters = listOf(
-    null to "All",
+    STATUS_ALL to "All",
     "running" to "Running",
     "finished" to "Finished",
     "error" to "Failed",
@@ -132,20 +132,12 @@ fun AgentListScreen(
                     colors = cursorFilledTextFieldColors(),
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
                 )
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    contentPadding = PaddingValues(horizontal = 16.dp),
-                ) {
-                    items(statusFilters) { (value, label) ->
-                        FilterChip(
-                            selected = state.statusFilter == value,
-                            onClick = { viewModel.updateStatusFilter(value) },
-                            label = { Text(label) },
-                            shape = CursorFilterChipShape,
-                            colors = cursorFilterChipColors(),
-                        )
-                    }
-                }
+                SegmentedToggle(
+                    options = statusFilters.map { (value, label) -> SegmentOption(value, label) },
+                    selectedId = state.statusFilter ?: STATUS_ALL,
+                    onSelect = { id -> viewModel.updateStatusFilter(if (id == STATUS_ALL) null else id) },
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                )
                 Spacer(modifier = Modifier.padding(top = 4.dp))
             }
 

@@ -3,6 +3,8 @@ package fail.failure.cursor.ui.agents
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import fail.failure.cursor.agents.TranscriptLineDto
+import fail.failure.cursor.agents.TranscriptStore
 import fail.failure.cursor.network.ApiClient
 import fail.failure.cursor.network.cursorApiErrorMessage
 import fail.failure.cursor.network.model.Agent
@@ -38,6 +40,20 @@ sealed interface TranscriptLine {
     data class SystemNote(val text: String) : TranscriptLine
 }
 
+private fun TranscriptLine.toDto(): TranscriptLineDto = when (this) {
+    is TranscriptLine.Assistant -> TranscriptLineDto.Assistant(text)
+    is TranscriptLine.Thinking -> TranscriptLineDto.Thinking(text)
+    is TranscriptLine.Tool -> TranscriptLineDto.Tool(name, status)
+    is TranscriptLine.SystemNote -> TranscriptLineDto.SystemNote(text)
+}
+
+private fun TranscriptLineDto.toDomain(): TranscriptLine = when (this) {
+    is TranscriptLineDto.Assistant -> TranscriptLine.Assistant(text)
+    is TranscriptLineDto.Thinking -> TranscriptLine.Thinking(text)
+    is TranscriptLineDto.Tool -> TranscriptLine.Tool(name, status)
+    is TranscriptLineDto.SystemNote -> TranscriptLine.SystemNote(text)
+}
+
 data class AgentDetailUiState(
     val agent: Agent? = null,
     val currentRunId: String? = null,
@@ -56,9 +72,12 @@ class AgentDetailViewModel(
     private val apiClient: ApiClient,
     private val agentId: String,
     private val appContext: Context,
+    private val transcriptStore: TranscriptStore,
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(AgentDetailUiState())
+    private val _uiState = MutableStateFlow(
+        AgentDetailUiState(transcript = transcriptStore.load(agentId).map { it.toDomain() }),
+    )
     val uiState: StateFlow<AgentDetailUiState> = _uiState.asStateFlow()
 
     private var streamJob: Job? = null
@@ -81,10 +100,19 @@ class AgentDetailViewModel(
         }
     }
 
+    private fun persist() {
+        transcriptStore.save(agentId, _uiState.value.transcript.map { it.toDto() })
+    }
+
     private fun startStreaming(runId: String) {
         streamJob?.cancel()
-        _uiState.value = _uiState.value.copy(currentRunId = runId)
+        _uiState.value = _uiState.value.copy(currentRunId = runId, error = null)
         val assistantBuffer = StringBuilder()
+        // Guards against merging this run's first assistant delta into a *previous* run's bubble
+        // that happens to be the last transcript entry (e.g. restored from local history, or left
+        // over from before this follow-up was sent) - without it, two unrelated runs' text could
+        // get concatenated into one bubble.
+        var startedNewAssistantBubble = false
         streamJob = viewModelScope.launch {
             apiClient.sseClient.stream(apiClient.runStreamUrl(agentId, runId)).collect { event ->
                 val current = _uiState.value
@@ -97,10 +125,11 @@ class AgentDetailViewModel(
                         assistantBuffer.append(event.text)
                         val lines = current.transcript.toMutableList()
                         val last = lines.lastOrNull()
-                        if (last is TranscriptLine.Assistant) {
+                        if (startedNewAssistantBubble && last is TranscriptLine.Assistant) {
                             lines[lines.lastIndex] = TranscriptLine.Assistant(assistantBuffer.toString())
                         } else {
                             lines.add(TranscriptLine.Assistant(assistantBuffer.toString()))
+                            startedNewAssistantBubble = true
                         }
                         _uiState.value = current.copy(transcript = lines)
                         assistantDeltaCount++
@@ -121,21 +150,59 @@ class AgentDetailViewModel(
                             ),
                         )
                         assistantBuffer.clear()
+                        startedNewAssistantBubble = false
                     }
                     is RunEvent.Result -> {
                         _uiState.value = current.copy(
                             runStatus = event.status,
                             transcript = if (event.text != null) {
                                 current.transcript + TranscriptLine.SystemNote("Finished: ${event.status}")
-                            } else current.transcript,
+                            } else {
+                                current.transcript
+                            },
                         )
                         notifyProgress(current.agent?.name, event.status, null)
                         fetchGitInfo(runId)
                     }
-                    is RunEvent.Error -> _uiState.value = current.copy(error = event.message)
+                    is RunEvent.Error -> {
+                        // A run that finishes very fast can close its stream before this app ever
+                        // attaches to it - Cursor's own docs confirm a stream scoped to an
+                        // already-finished run won't replay anything, and in practice the server
+                        // answers with a flat "stream is no longer available" rather than the
+                        // final status. Fetching the run directly recovers from that instead of
+                        // leaving a stale status badge next to a dead error.
+                        fallbackToRunStatus(runId, event.message)
+                    }
                     RunEvent.Done, RunEvent.Heartbeat -> Unit
                     is RunEvent.Unknown -> Unit
                 }
+                persist()
+            }
+        }
+    }
+
+    private fun fallbackToRunStatus(runId: String, streamError: String?) {
+        viewModelScope.launch {
+            try {
+                val run = apiClient.service.getRun(agentId, runId)
+                val current = _uiState.value
+                val alreadyHasResult = run.result != null &&
+                    current.transcript.any { it is TranscriptLine.Assistant && it.text == run.result }
+                _uiState.value = current.copy(
+                    runStatus = run.status,
+                    error = null,
+                    transcript = if (run.result != null && !alreadyHasResult) {
+                        current.transcript + TranscriptLine.Assistant(run.result)
+                    } else {
+                        current.transcript
+                    },
+                )
+                persist()
+                if (run.git != null) {
+                    _uiState.value = _uiState.value.copy(gitInfo = run.git)
+                }
+            } catch (_: Exception) {
+                _uiState.value = _uiState.value.copy(error = streamError ?: "Run stream is no longer available")
             }
         }
     }
