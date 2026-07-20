@@ -4,10 +4,10 @@
 
 # Keep kotlinx.serialization models
 -keepattributes *Annotation*, InnerClasses
--keep,includedescriptorclasses class fail.failure.cursor.**$$serializer { *; }
--keepclassmembers class fail.failure.cursor.** {
+-keep,includedescriptorclasses class fail.failure.grok.**$$serializer { *; }
+-keepclassmembers class fail.failure.grok.** {
     *** Companion;
 }
--keepclasseswithmembers class fail.failure.cursor.** {
+-keepclasseswithmembers class fail.failure.grok.** {
     kotlinx.serialization.KSerializer serializer(...);
 }

@@ -14,5 +14,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "CursorAndroid"
+rootProject.name = "GrokAndroid"
 include(":app")

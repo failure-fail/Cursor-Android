@@ -6,19 +6,19 @@ plugins {
 }
 
 android {
-    namespace = "fail.failure.cursor"
+    namespace = "fail.failure.grok"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "fail.failure.cursor"
+        applicationId = "fail.failure.grok"
         minSdk = 26
         targetSdk = 34
         versionCode = 1
         versionName = "0.1.0"
 
-        // Redirect target for the Cursor account login deep link (matches the
-        // desktop/CLI flow's callback scheme, see auth/DeepLinkAuth.kt).
-        manifestPlaceholders["authRedirectScheme"] = "cursorandroid"
+        // Reserved deep-link host for future custom-tab OAuth callbacks.
+        // Primary sign-in uses auth.x.ai device-code (see auth/GrokOAuthClient.kt).
+        manifestPlaceholders["authRedirectScheme"] = "grokandroid"
         manifestPlaceholders["authRedirectHost"] = "auth-callback"
     }
 
