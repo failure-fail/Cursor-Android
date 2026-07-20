@@ -4,9 +4,17 @@ on:
   push:
     tags:
       - "v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release tag to create (e.g. v0.1.0)"
+        required: true
 
 permissions:
   contents: write
+
+env:
+  RELEASE_TAG: ${{ inputs.version || github.ref_name }}
 
 jobs:
   build-and-release:
@@ -48,7 +56,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "${{ github.ref_name }}" \
+          gh release create "${{ env.RELEASE_TAG }}" \
             app/build/outputs/apk/release/app-release.apk \
-            --title "${{ github.ref_name }}" \
+            --title "${{ env.RELEASE_TAG }}" \
+            --target "${{ github.sha }}" \
             --generate-notes
