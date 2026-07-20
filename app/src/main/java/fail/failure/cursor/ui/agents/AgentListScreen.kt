@@ -83,6 +83,8 @@ fun AgentListScreen(
                 state.needsApiKey -> {
                     ApiKeyRequiredCard(
                         onSubmit = viewModel::signInWithApiKey,
+                        isSubmitting = state.isLoading || state.isRefreshing,
+                        errorMessage = state.apiKeyError,
                         modifier = Modifier.padding(16.dp),
                     )
                 }

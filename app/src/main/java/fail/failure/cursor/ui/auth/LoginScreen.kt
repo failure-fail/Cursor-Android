@@ -183,6 +183,7 @@ fun LoginScreen(viewModel: AuthViewModel, onSignedIn: () -> Unit) {
             Spacer(modifier = Modifier.height(8.dp))
             OutlinedButton(
                 onClick = { viewModel.signInWithApiKey(apiKeyText) },
+                enabled = apiKeyText.isNotBlank(),
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Text("Sign in with API key")

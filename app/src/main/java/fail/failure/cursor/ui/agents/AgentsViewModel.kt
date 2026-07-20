@@ -16,6 +16,7 @@ data class AgentsUiState(
     val isLoading: Boolean = false,
     val isRefreshing: Boolean = false,
     val needsApiKey: Boolean = false,
+    val apiKeyError: String? = null,
     val error: String? = null,
 )
 
@@ -44,11 +45,18 @@ class AgentsViewModel(
                 val response = apiClient.service.listAgents()
                 _uiState.value = AgentsUiState(agents = response.agents, isLoading = false, isRefreshing = false)
             } catch (e: Exception) {
+                val unauthorized = e.isUnauthorized()
+                val triedAKey = !authRepository.session.value.apiKey.isNullOrBlank()
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     isRefreshing = false,
-                    needsApiKey = e.isUnauthorized(),
-                    error = if (e.isUnauthorized()) null else e.message ?: "Failed to load agents",
+                    needsApiKey = unauthorized,
+                    apiKeyError = if (unauthorized && triedAKey) {
+                        "That key wasn't accepted. Double-check it and try again."
+                    } else {
+                        null
+                    },
+                    error = if (unauthorized) null else e.message ?: "Failed to load agents",
                 )
             }
         }

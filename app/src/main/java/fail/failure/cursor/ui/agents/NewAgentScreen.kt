@@ -106,7 +106,11 @@ fun NewAgentScreen(
         ) {
             if (state.needsApiKey) {
                 item {
-                    ApiKeyRequiredCard(onSubmit = viewModel::signInWithApiKey)
+                    ApiKeyRequiredCard(
+                        onSubmit = viewModel::signInWithApiKey,
+                        isSubmitting = state.isLoadingOptions,
+                        errorMessage = state.apiKeyError,
+                    )
                 }
             }
             item {

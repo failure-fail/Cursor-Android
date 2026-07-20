@@ -40,6 +40,7 @@ data class NewAgentUiState(
     val isSubmitting: Boolean = false,
     val createdAgentId: String? = null,
     val needsApiKey: Boolean = false,
+    val apiKeyError: String? = null,
     val error: String? = null,
 ) {
     val filteredRepositories: List<RepositoryInfo>
@@ -78,10 +79,17 @@ class NewAgentViewModel(
                     isLoadingOptions = false,
                 )
             } catch (e: Exception) {
+                val unauthorized = e.isUnauthorized()
+                val triedAKey = !authRepository.session.value.apiKey.isNullOrBlank()
                 _uiState.value = _uiState.value.copy(
                     isLoadingOptions = false,
-                    needsApiKey = e.isUnauthorized(),
-                    error = if (e.isUnauthorized()) null else e.message ?: "Failed to load repositories/models",
+                    needsApiKey = unauthorized,
+                    apiKeyError = if (unauthorized && triedAKey) {
+                        "That key wasn't accepted. Double-check it and try again."
+                    } else {
+                        null
+                    },
+                    error = if (unauthorized) null else e.message ?: "Failed to load repositories/models",
                 )
             }
         }
