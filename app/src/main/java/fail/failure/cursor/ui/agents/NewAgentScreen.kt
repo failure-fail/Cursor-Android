@@ -58,6 +58,8 @@ import fail.failure.cursor.network.model.ImageInput
 import fail.failure.cursor.network.model.RepositoryInfo
 import fail.failure.cursor.ui.components.ApiKeyRequiredCard
 import fail.failure.cursor.ui.components.GlowButton
+import fail.failure.cursor.ui.components.SegmentOption
+import fail.failure.cursor.ui.components.SegmentedToggle
 import fail.failure.cursor.ui.theme.CursorTextFieldShape
 import fail.failure.cursor.ui.theme.CursorTextSecondary
 import fail.failure.cursor.ui.theme.cursorFilledTextFieldColors
@@ -310,18 +312,14 @@ private fun EnvTargetPicker(
     onKeepAwakeChange: (Boolean) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            FilterChip(
-                selected = target == EnvInput.TYPE_CLOUD,
-                onClick = { onTargetChange(EnvInput.TYPE_CLOUD) },
-                label = { Text("☁️ Cloud") },
-            )
-            FilterChip(
-                selected = target == EnvInput.TYPE_MACHINE,
-                onClick = { onTargetChange(EnvInput.TYPE_MACHINE) },
-                label = { Text("💻 My machine (Remote Control)") },
-            )
-        }
+        SegmentedToggle(
+            options = listOf(
+                SegmentOption(EnvInput.TYPE_CLOUD, "☁️ Cloud"),
+                SegmentOption(EnvInput.TYPE_MACHINE, "💻 My machine"),
+            ),
+            selectedId = target,
+            onSelect = onTargetChange,
+        )
         if (target == EnvInput.TYPE_MACHINE) {
             Column {
                 Text(

@@ -7,10 +7,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -29,8 +29,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import fail.failure.cursor.ui.components.AgentCard
+import fail.failure.cursor.ui.components.AgentCardSkeleton
 import fail.failure.cursor.ui.components.AmbientBackground
 import fail.failure.cursor.ui.components.ApiKeyRequiredCard
+import fail.failure.cursor.ui.components.StaggeredItem
 import fail.failure.cursor.ui.theme.CursorTextSecondary
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -70,7 +72,13 @@ fun AgentListScreen(
         ) {
             when {
                 state.isLoading && state.agents.isEmpty() -> {
-                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        items(6) { AgentCardSkeleton() }
+                    }
                 }
                 state.needsApiKey -> {
                     ApiKeyRequiredCard(
@@ -105,8 +113,10 @@ fun AgentListScreen(
                         contentPadding = PaddingValues(16.dp),
                         verticalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
-                        items(state.agents, key = { it.id }) { agent ->
-                            AgentCard(agent = agent, onClick = { onOpenAgent(agent.id) })
+                        itemsIndexed(state.agents, key = { _, agent -> agent.id }) { index, agent ->
+                            StaggeredItem(index = index) {
+                                AgentCard(agent = agent, onClick = { onOpenAgent(agent.id) })
+                            }
                         }
                     }
                 }
