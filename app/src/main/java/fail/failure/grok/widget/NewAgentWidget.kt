@@ -42,7 +42,7 @@ class NewAgentWidget : GlanceAppWidget() {
             Box(
                 modifier = GlanceModifier
                     .fillMaxSize()
-                    .background(Color(0xFFFF6A3D))
+                    .background(Color(0xFF111111))
                     .cornerRadius(28.dp)
                     .clickable(
                         actionStartActivity<MainActivity>(
@@ -58,15 +58,15 @@ class NewAgentWidget : GlanceAppWidget() {
                     Text(
                         "+",
                         style = TextStyle(
-                            color = ColorProvider(Color.White),
+                            color = ColorProvider(Color(0xFFF2F2F2)),
                             fontSize = 34.sp,
                             fontWeight = FontWeight.Bold,
                         ),
                     )
                     Text(
-                        "New Agent",
+                        "New chat",
                         style = TextStyle(
-                            color = ColorProvider(Color.White),
+                            color = ColorProvider(Color(0xFFF2F2F2)),
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Medium,
                             textAlign = TextAlign.Center,

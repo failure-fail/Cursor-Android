@@ -17,25 +17,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import fail.failure.grok.ui.theme.GrokAccent
-import fail.failure.grok.ui.theme.GrokAccentSecondary
 import fail.failure.grok.ui.theme.GrokBackground
 import kotlin.math.cos
 import kotlin.math.sin
 
-/**
- * Slow-drifting radial glow blobs over the near-black base, the ambient "ai-app" backdrop used
- * behind hero content (sign-in, empty states) instead of a flat surface color. Cheap to draw -
- * a handful of soft radial gradients on a Canvas, not a real blur pass - so it costs nothing on
- * low-end hardware while still reading as premium/atmospheric rather than a stock screen.
- */
+/** Soft monochrome atmosphere — no purple/terracotta glow blobs. */
 @Composable
 fun AmbientBackground(modifier: Modifier = Modifier, content: @Composable BoxScope.() -> Unit) {
     val transition = rememberInfiniteTransition(label = "ambient")
     val t by transition.animateFloat(
         initialValue = 0f,
         targetValue = (2 * Math.PI).toFloat(),
-        animationSpec = infiniteRepeatable(tween(24000, easing = LinearEasing)),
+        animationSpec = infiniteRepeatable(tween(28000, easing = LinearEasing), RepeatMode.Restart),
         label = "ambientPhase",
     )
 
@@ -43,11 +36,10 @@ fun AmbientBackground(modifier: Modifier = Modifier, content: @Composable BoxSco
         Canvas(modifier = Modifier.fillMaxSize()) {
             val w = size.width
             val h = size.height
-
-            fun blob(cx: Float, cy: Float, radius: Float, color: Color) {
+            fun blob(cx: Float, cy: Float, radius: Float, alpha: Float) {
                 drawCircle(
                     brush = Brush.radialGradient(
-                        colors = listOf(color.copy(alpha = 0.45f), color.copy(alpha = 0f)),
+                        colors = listOf(Color.White.copy(alpha = alpha), Color.Transparent),
                         center = Offset(cx, cy),
                         radius = radius,
                     ),
@@ -55,24 +47,17 @@ fun AmbientBackground(modifier: Modifier = Modifier, content: @Composable BoxSco
                     center = Offset(cx, cy),
                 )
             }
-
             blob(
-                cx = w * 0.25f + sin(t) * w * 0.08f,
-                cy = h * 0.18f + cos(t * 0.8f) * h * 0.05f,
-                radius = w * 0.65f,
-                color = GrokAccent,
+                cx = w * 0.2f + sin(t) * w * 0.05f,
+                cy = h * 0.15f + cos(t * 0.7f) * h * 0.04f,
+                radius = w * 0.7f,
+                alpha = 0.06f,
             )
             blob(
-                cx = w * 0.85f + cos(t * 1.2f) * w * 0.06f,
-                cy = h * 0.75f + sin(t * 0.7f) * h * 0.06f,
+                cx = w * 0.85f + cos(t) * w * 0.04f,
+                cy = h * 0.8f + sin(t * 0.6f) * h * 0.05f,
                 radius = w * 0.55f,
-                color = GrokAccentSecondary,
-            )
-            blob(
-                cx = w * 0.55f + sin(t * 0.6f) * w * 0.1f,
-                cy = h * 0.45f + cos(t * 0.5f) * h * 0.08f,
-                radius = w * 0.4f,
-                color = Color(0xFFFF3D9A),
+                alpha = 0.05f,
             )
         }
         content()

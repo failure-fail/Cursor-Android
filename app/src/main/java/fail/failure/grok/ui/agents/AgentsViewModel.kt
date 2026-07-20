@@ -94,7 +94,7 @@ class AgentsViewModel(
                     } else {
                         null
                     },
-                    error = if (unauthorized) null else e.grokApiErrorMessage() ?: e.message ?: "Failed to load agents",
+                    error = if (unauthorized) null else e.grokApiErrorMessage() ?: e.message ?: "Failed to load chats",
                 )
             }
         }

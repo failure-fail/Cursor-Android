@@ -219,68 +219,6 @@ data class ArtifactDownloadResponse(
 // --- Wire types for cli-chat-proxy sandbox API (camelCase) ---
 
 @Serializable
-data class SandboxEnvironment(
-    val environmentId: String? = null,
-    val userId: String? = null,
-    val teamId: String? = null,
-    val name: String? = null,
-    val description: String? = null,
-    val repository: String? = null,
-    val defaultBranch: String? = null,
-    val createTime: String? = null,
-    val modifyTime: String? = null,
-)
-
-@Serializable
-data class SandboxEnvironmentWithMetadata(
-    val environment: SandboxEnvironment? = null,
-    val userRole: String? = null,
-)
-
-@Serializable
-data class SandboxListEnvironmentsResponse(
-    val environments: List<SandboxEnvironmentWithMetadata> = emptyList(),
-    val page: Int? = null,
-    val pageSize: Int? = null,
-    val hasMore: Boolean? = null,
-)
-
-@Serializable
-data class SandboxCreateEnvironmentRequest(
-    val name: String? = null,
-    val description: String? = null,
-    val repository: String? = null,
-    val defaultBranch: String? = null,
-)
-
-@Serializable
-data class SandboxEnvironmentResponse(
-    val environment: SandboxEnvironmentWithMetadata? = null,
-)
-
-@Serializable
-data class SandboxStartRequest(
-    val environmentId: String? = null,
-    val repository: String? = null,
-    val branch: String? = null,
-    val mode: String = "SANDBOX_MODE_AGENT",
-)
-
-@Serializable
-data class SandboxStartResponse(
-    val sandboxId: String = "",
-    val sessionId: String = "",
-    val websocketUrl: String = "",
-    val environment: SandboxEnvironmentWithMetadata? = null,
-)
-
-@Serializable
-data class SandboxStatusResponse(
-    val status: String = "",
-    val message: String = "",
-)
-
-@Serializable
 data class OpenAiModelsResponse(
     val data: List<OpenAiModel> = emptyList(),
 )
@@ -292,24 +230,44 @@ data class OpenAiModel(
 )
 
 @Serializable
-data class GrokSettingsResponse(
-    val email: String? = null,
-    val userId: String? = null,
+data class ChatMessageWire(
+    val role: String,
+    val content: String,
 )
 
-fun SandboxEnvironmentWithMetadata.toAgent(): Agent? {
-    val env = environment ?: return null
-    val id = env.environmentId ?: return null
-    return Agent(
-        id = id,
-        name = env.name ?: id,
-        status = "READY",
-        repos = env.repository?.let { listOf(RepoInput(url = it, startingRef = env.defaultBranch)) },
-        createdAt = env.createTime,
-        updatedAt = env.modifyTime,
-        archived = false,
-        env = EnvInput(type = EnvInput.TYPE_CLOUD),
-        description = env.description,
-        url = "https://grok.com",
-    )
-}
+@Serializable
+data class ChatCompletionRequest(
+    val model: String,
+    val messages: List<ChatMessageWire>,
+    val stream: Boolean? = null,
+    val temperature: Double? = null,
+)
+
+@Serializable
+data class ChatCompletionChoice(
+    val index: Int? = null,
+    val message: ChatMessageWire? = null,
+    val delta: ChatDelta? = null,
+    @SerialName("finish_reason") val finishReason: String? = null,
+)
+
+@Serializable
+data class ChatDelta(
+    val role: String? = null,
+    val content: String? = null,
+    @SerialName("reasoning_content") val reasoningContent: String? = null,
+)
+
+@Serializable
+data class ChatCompletionResponse(
+    val id: String? = null,
+    val model: String? = null,
+    val choices: List<ChatCompletionChoice> = emptyList(),
+)
+
+@Serializable
+data class ChatCompletionChunk(
+    val id: String? = null,
+    val choices: List<ChatCompletionChoice> = emptyList(),
+)
+

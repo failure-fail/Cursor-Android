@@ -1,5 +1,6 @@
 package fail.failure.grok.network
 
+import fail.failure.grok.agents.ChatStore
 import fail.failure.grok.auth.TokenStore
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
@@ -9,7 +10,10 @@ import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
 import java.util.concurrent.TimeUnit
 
-class ApiClient(tokenStore: TokenStore) {
+class ApiClient(
+    tokenStore: TokenStore,
+    chatStore: ChatStore,
+) {
 
     private val json = Json { ignoreUnknownKeys = true; explicitNulls = false }
 
@@ -19,7 +23,7 @@ class ApiClient(tokenStore: TokenStore) {
             HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BASIC },
         )
         .connectTimeout(30, TimeUnit.SECONDS)
-        .readTimeout(60, TimeUnit.SECONDS)
+        .readTimeout(120, TimeUnit.SECONDS)
         .callTimeout(0, TimeUnit.SECONDS)
         .build()
 
@@ -30,11 +34,10 @@ class ApiClient(tokenStore: TokenStore) {
         .build()
         .create(GrokApiService::class.java)
 
-    /** Preferred entry point for UI / workers (sandbox-mapped agent surface). */
-    val service: GrokBackend = GrokBackend(retrofitService)
+    val service: GrokBackend = GrokBackend(retrofitService, chatStore)
 
     val sseClient = SseClient(okHttpClient)
 
     fun runStreamUrl(agentId: String, runId: String) =
-        "${GrokEndpoints.API_BASE}sandbox/sessions/$runId/logs"
+        "${GrokEndpoints.API_BASE}chat/completions"
 }

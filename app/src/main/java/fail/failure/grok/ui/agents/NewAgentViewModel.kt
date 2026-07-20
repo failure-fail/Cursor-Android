@@ -214,7 +214,7 @@ class NewAgentViewModel(
                     isSubmitting = false,
                     needsApiKey = unauthorized,
                     apiKeyError = if (unauthorized) e.grokApiErrorMessage() else null,
-                    error = if (unauthorized) null else e.grokApiErrorMessage() ?: e.message ?: "Failed to create agent",
+                    error = if (unauthorized) null else e.grokApiErrorMessage() ?: e.message ?: "Failed to start chat",
                 )
             }
         }

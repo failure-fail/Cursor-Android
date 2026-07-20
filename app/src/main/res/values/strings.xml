@@ -1,5 +1,5 @@
 <resources>
     <string name="app_name">Grok</string>
-    <string name="widget_agent_status_label">Grok Sandboxes</string>
-    <string name="widget_new_agent_label">New Grok Sandbox</string>
+    <string name="widget_agent_status_label">Grok chats</string>
+    <string name="widget_new_agent_label">New Grok chat</string>
 </resources>

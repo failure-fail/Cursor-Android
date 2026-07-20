@@ -1,11 +1,16 @@
 package fail.failure.grok.network
 
+import fail.failure.grok.agents.Chat
+import fail.failure.grok.agents.ChatMessage
+import fail.failure.grok.agents.ChatStore
 import fail.failure.grok.network.model.Agent
 import fail.failure.grok.network.model.AgentListResponse
 import fail.failure.grok.network.model.AgentUsageResponse
 import fail.failure.grok.network.model.ApiKeyInfo
 import fail.failure.grok.network.model.ArtifactDownloadResponse
 import fail.failure.grok.network.model.ArtifactListResponse
+import fail.failure.grok.network.model.ChatCompletionRequest
+import fail.failure.grok.network.model.ChatMessageWire
 import fail.failure.grok.network.model.CreateAgentRequest
 import fail.failure.grok.network.model.CreateAgentResponse
 import fail.failure.grok.network.model.CreateRunRequest
@@ -15,30 +20,25 @@ import fail.failure.grok.network.model.ModelListResponse
 import fail.failure.grok.network.model.RepositoryListResponse
 import fail.failure.grok.network.model.Run
 import fail.failure.grok.network.model.RunListResponse
-import fail.failure.grok.network.model.SandboxCreateEnvironmentRequest
-import fail.failure.grok.network.model.SandboxStartRequest
-import fail.failure.grok.network.model.toAgent
+import java.util.UUID
 
 /**
- * Compatibility facade: keeps the former Agents ViewModel call shape while
- * talking to Grok Build sandbox + models endpoints.
+ * Maps the former Agents UI onto local chats + cli-chat-proxy
+ * `POST /v1/chat/completions` (sandbox/environments returns 404 on the proxy).
  */
-class GrokBackend(private val service: GrokApiService) {
+class GrokBackend(
+    private val service: GrokApiService,
+    private val chatStore: ChatStore,
+) {
 
-    suspend fun me(): ApiKeyInfo {
-        val settings = runCatching { service.settings() }.getOrNull()
-        return ApiKeyInfo(
-            name = "Grok Build",
-            email = settings?.email,
-            userId = settings?.userId,
-        )
-    }
+    suspend fun me(): ApiKeyInfo = ApiKeyInfo(name = "Grok Build")
 
     suspend fun models(): ModelListResponse {
-        val response = service.listModels()
-        return ModelListResponse(
-            models = response.data.map { ModelInfo(id = it.id, displayName = it.id) },
-        )
+        val response = runCatching { service.listModels() }.getOrNull()
+        val models = response?.data?.map { ModelInfo(id = it.id, displayName = it.id) }
+            ?.ifEmpty { null }
+            ?: DEFAULT_MODELS
+        return ModelListResponse(models = models)
     }
 
     suspend fun repositories(): RepositoryListResponse = RepositoryListResponse()
@@ -48,77 +48,77 @@ class GrokBackend(private val service: GrokApiService) {
         cursor: String? = null,
         includeArchived: Boolean = false,
     ): AgentListResponse {
-        val page = cursor?.toIntOrNull()
-        val response = service.listEnvironments(page = page, pageSize = limit)
-        val agents = response.environments.mapNotNull { it.toAgent() }
-        val next = if (response.hasMore == true) {
-            ((response.page ?: 0) + 1).toString()
-        } else {
-            null
-        }
-        return AgentListResponse(agents = agents, cursor = next)
+        val agents = chatStore.list().take(limit).map { it.toAgent() }
+        return AgentListResponse(agents = agents)
     }
 
     suspend fun createAgent(request: CreateAgentRequest): CreateAgentResponse {
-        val repoUrl = request.repos?.firstOrNull()?.url
-        val created = service.createEnvironment(
-            SandboxCreateEnvironmentRequest(
-                name = request.name ?: request.prompt.text.take(48).ifBlank { "Sandbox" },
-                description = request.prompt.text,
-                repository = repoUrl,
-                defaultBranch = request.repos?.firstOrNull()?.startingRef,
-            ),
+        val model = request.model?.id ?: DEFAULT_MODELS.first().id
+        val chat = chatStore.create(prompt = request.prompt.text, model = model)
+        // Complete the first turn so opening the chat isn't an empty 404 stream.
+        val reply = completeChat(chat)
+        val refreshed = chatStore.load(chat.id) ?: chat
+        val run = Run(
+            id = refreshed.latestRunId ?: chat.latestRunId ?: UUID.randomUUID().toString(),
+            status = refreshed.status ?: "FINISHED",
+            result = reply,
         )
-        val agent = created.environment?.toAgent()
-            ?: error("Sandbox create returned no environment")
-        val run = runCatching {
-            val started = service.startSession(
-                SandboxStartRequest(
-                    environmentId = agent.id,
-                    repository = repoUrl,
-                    branch = request.repos?.firstOrNull()?.startingRef,
-                ),
-            )
-            Run(
-                id = started.sessionId.ifBlank { started.sandboxId },
-                status = "STARTING",
-            )
-        }.getOrNull()
-        return CreateAgentResponse(agent = agent, run = run)
+        return CreateAgentResponse(agent = refreshed.toAgent(), run = run)
     }
 
     suspend fun getAgent(id: String): Agent {
-        return service.getEnvironment(id).environment?.toAgent()
-            ?: error("Environment $id not found")
+        return chatStore.load(id)?.toAgent() ?: error("Chat $id not found")
     }
 
     suspend fun createRun(id: String, request: CreateRunRequest): CreateRunResponse {
-        val started = service.startSession(
-            SandboxStartRequest(
-                environmentId = id,
-                mode = "SANDBOX_MODE_AGENT",
-            ),
+        val chat = chatStore.load(id) ?: error("Chat $id not found")
+        val runId = UUID.randomUUID().toString()
+        chatStore.appendMessage(
+            id,
+            ChatMessage(role = "user", content = request.prompt.text),
+            status = "RUNNING",
+            runId = runId,
         )
+        val updated = chatStore.load(id) ?: chat
+        val reply = completeChat(updated)
         return CreateRunResponse(
             run = Run(
-                id = started.sessionId.ifBlank { started.sandboxId },
-                status = "STARTING",
+                id = runId,
+                status = "FINISHED",
+                result = reply,
             ),
         )
     }
 
-    suspend fun listRuns(id: String, limit: Int = 50): RunListResponse = RunListResponse()
-
-    suspend fun getRun(id: String, runId: String): Run {
-        val status = service.sessionStatus(runId)
-        return Run(
-            id = runId,
-            status = status.status.ifBlank { "UNKNOWN" },
-            result = status.message.takeIf { it.isNotBlank() },
+    suspend fun listRuns(id: String, limit: Int = 50): RunListResponse {
+        val chat = chatStore.load(id) ?: return RunListResponse()
+        val runId = chat.latestRunId ?: return RunListResponse()
+        val lastAssistant = chat.messages.lastOrNull { it.role == "assistant" }?.content
+        return RunListResponse(
+            runs = listOf(
+                Run(
+                    id = runId,
+                    status = chat.status ?: "FINISHED",
+                    createdAt = chat.updatedAt,
+                    result = lastAssistant,
+                ),
+            ),
         )
     }
 
-    suspend fun cancelRun(id: String, runId: String) = Unit
+    suspend fun getRun(id: String, runId: String): Run {
+        val chat = chatStore.load(id) ?: error("Chat $id not found")
+        val lastAssistant = chat.messages.lastOrNull { it.role == "assistant" }?.content
+        return Run(
+            id = runId,
+            status = chat.status ?: "FINISHED",
+            result = lastAssistant,
+        )
+    }
+
+    suspend fun cancelRun(id: String, runId: String) {
+        chatStore.updateStatus(id, "CANCELLED", runId)
+    }
 
     suspend fun getUsage(id: String, runId: String? = null): AgentUsageResponse = AgentUsageResponse()
 
@@ -132,6 +132,49 @@ class GrokBackend(private val service: GrokApiService) {
     suspend fun unarchiveAgent(id: String) = Unit
 
     suspend fun deleteAgent(id: String) {
-        service.deleteEnvironment(id)
+        chatStore.delete(id)
+    }
+
+    private suspend fun completeChat(chat: Chat): String {
+        val model = chat.model ?: DEFAULT_MODELS.first().id
+        val messages = chat.messages.map { ChatMessageWire(role = it.role, content = it.content) }
+        val response = service.chatCompletions(
+            ChatCompletionRequest(
+                model = model,
+                messages = messages,
+                stream = false,
+            ),
+        )
+        val text = response.choices.firstOrNull()?.message?.content.orEmpty()
+        if (text.isNotBlank()) {
+            chatStore.appendMessage(
+                chat.id,
+                ChatMessage(role = "assistant", content = text),
+                status = "FINISHED",
+            )
+        } else {
+            chatStore.updateStatus(chat.id, "FINISHED")
+        }
+        return text
+    }
+
+    private fun Chat.toAgent(): Agent = Agent(
+        id = id,
+        name = title,
+        status = status,
+        latestRunId = latestRunId,
+        createdAt = createdAt,
+        updatedAt = updatedAt,
+        archived = false,
+        description = messages.lastOrNull { it.role == "user" }?.content,
+        url = null,
+    )
+
+    companion object {
+        val DEFAULT_MODELS = listOf(
+            ModelInfo(id = "grok-4", displayName = "Grok 4"),
+            ModelInfo(id = "grok-3", displayName = "Grok 3"),
+            ModelInfo(id = "grok-3-mini", displayName = "Grok 3 Mini"),
+        )
     }
 }

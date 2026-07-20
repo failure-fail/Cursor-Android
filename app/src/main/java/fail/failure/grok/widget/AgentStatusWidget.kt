@@ -37,11 +37,12 @@ import fail.failure.grok.network.model.Agent
 import java.time.Duration
 import java.time.Instant
 
-private val WidgetBg = Color(0xFF16161B)
-private val RowBg = Color(0xFF212129)
-private val AccentColor = Color(0xFFFF6A3D)
-private val TextPrimary = ColorProvider(Color(0xFFF5F5F7))
-private val TextSecondary = ColorProvider(Color(0xFF9A9AA2))
+private val WidgetBg = Color(0xFF111111)
+private val RowBg = Color(0xFF1A1A1A)
+private val AccentColor = Color(0xFFF2F2F2)
+private val TextPrimary = ColorProvider(Color(0xFFF5F5F5))
+private val TextSecondary = ColorProvider(Color(0xFF9B9B9B))
+private val AccentOnColor = ColorProvider(Color.Black)
 
 private fun relativeTime(iso: String?): String? {
     val instant = iso?.let { runCatching { Instant.parse(it) }.getOrNull() } ?: return null
@@ -91,7 +92,7 @@ class AgentStatusWidget : GlanceAppWidget() {
                 }
                 Spacer(modifier = GlanceModifier.width(8.dp))
                 Text(
-                    "Agents",
+                    "Chats",
                     style = TextStyle(color = TextPrimary, fontSize = 15.sp, fontWeight = FontWeight.Bold),
                     modifier = GlanceModifier.defaultWeight(),
                 )
@@ -107,14 +108,14 @@ class AgentStatusWidget : GlanceAppWidget() {
                         ),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Text("+", style = TextStyle(color = ColorProvider(Color.White), fontSize = 16.sp, fontWeight = FontWeight.Bold))
+                    Text("+", style = TextStyle(color = AccentOnColor, fontSize = 16.sp, fontWeight = FontWeight.Bold))
                 }
             }
             Spacer(modifier = GlanceModifier.height(10.dp))
 
             when {
-                !signedIn -> EmptyState("Sign in to see your agents")
-                agents.isEmpty() -> EmptyState("No agents yet — tap + to launch one")
+                !signedIn -> EmptyState("Sign in to see your chats")
+                agents.isEmpty() -> EmptyState("No chats yet — tap + to launch one")
                 else -> {
                     agents.take(4).forEach { agent ->
                         AgentRow(agent)

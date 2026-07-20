@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
+import fail.failure.grok.agents.ChatStore
 import fail.failure.grok.agents.PinnedAgentsStore
 import fail.failure.grok.agents.TranscriptStore
 import fail.failure.grok.auth.AuthRepository
@@ -31,11 +32,14 @@ class GrokApp : Application() {
         private set
     lateinit var transcriptStore: TranscriptStore
         private set
+    lateinit var chatStore: ChatStore
+        private set
 
     override fun onCreate() {
         super.onCreate()
         tokenStore = TokenStore(this)
-        apiClient = ApiClient(tokenStore)
+        chatStore = ChatStore(this)
+        apiClient = ApiClient(tokenStore, chatStore)
         authRepository = AuthRepository(tokenStore, GrokOAuthClient(OkHttpClient()))
         onboardingPrefs = OnboardingPrefs(this)
         pinnedAgentsStore = PinnedAgentsStore(this)

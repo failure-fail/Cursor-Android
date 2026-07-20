@@ -98,7 +98,7 @@ fun NewAgentScreen(
         state.createdAgentId?.let { onCreated(it) }
     }
 
-    Scaffold(topBar = { TopAppBar(title = { Text("New agent") }) }) { padding ->
+    Scaffold(topBar = { TopAppBar(title = { Text("New chat") }) }) { padding ->
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
@@ -181,7 +181,7 @@ fun NewAgentScreen(
                     OutlinedTextField(
                         value = state.prompt,
                         onValueChange = viewModel::updatePrompt,
-                        label = { Text("What should the agent do?") },
+                        label = { Text("Message Grok…") },
                         shape = GrokTextFieldShape,
                         colors = cursorFilledTextFieldColors(),
                         modifier = Modifier.fillMaxWidth().height(160.dp),
@@ -255,7 +255,7 @@ fun NewAgentScreen(
                 Column {
                     state.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
                     GlowButton(
-                        text = "Launch agent",
+                        text = "Start chat",
                         onClick = {
                             haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                             viewModel.submit()

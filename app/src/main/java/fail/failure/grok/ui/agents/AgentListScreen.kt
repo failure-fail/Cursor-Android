@@ -65,7 +65,7 @@ fun AgentListScreen(
         containerColor = Color.Transparent,
         topBar = {
             TopAppBar(
-                title = { Text("Agents") },
+                title = { Text("Chats") },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
                 actions = {
                     IconButton(onClick = { showSortMenu = true }) {
@@ -95,9 +95,9 @@ fun AgentListScreen(
                 onClick = onNewAgent,
                 shape = CircleShape,
                 containerColor = GrokAccent,
-                contentColor = Color.White,
+                contentColor = Color.Black,
             ) {
-                Icon(Icons.Filled.Add, contentDescription = "New agent")
+                Icon(Icons.Filled.Add, contentDescription = "New chat")
             }
         },
     ) { padding ->
@@ -106,7 +106,7 @@ fun AgentListScreen(
                 OutlinedTextField(
                     value = state.searchQuery,
                     onValueChange = viewModel::updateSearchQuery,
-                    placeholder = { Text("Search agents") },
+                    placeholder = { Text("Search chats") },
                     leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
                     singleLine = true,
                     shape = GrokTextFieldShape,
@@ -147,12 +147,12 @@ fun AgentListScreen(
                                 Text("🤖", style = MaterialTheme.typography.titleLarge)
                                 Spacer(modifier = Modifier.padding(top = 8.dp))
                                 Text(
-                                    "No agents yet",
+                                    "No chats yet",
                                     style = MaterialTheme.typography.titleMedium,
                                     textAlign = TextAlign.Center,
                                 )
                                 Text(
-                                    "Tap + to launch one on a repo, just like Grok on desktop.",
+                                    "Tap + to start a chat with Grok Build.",
                                     color = GrokTextSecondary,
                                     textAlign = TextAlign.Center,
                                 )
@@ -162,7 +162,7 @@ fun AgentListScreen(
                     state.filteredAgents.isEmpty() -> {
                         Box(modifier = Modifier.fillMaxSize()) {
                             Text(
-                                "No agents match your search.",
+                                "No chats match your search.",
                                 color = GrokTextSecondary,
                                 textAlign = TextAlign.Center,
                                 modifier = Modifier.align(Alignment.Center).padding(32.dp),

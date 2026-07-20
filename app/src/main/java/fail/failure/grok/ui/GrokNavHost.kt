@@ -6,8 +6,8 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ChatBubbleOutline
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -81,7 +81,7 @@ fun GrokNavHost(app: GrokApp, requestedDestination: String? = null, requestedAge
             if (showBottomBar) {
                 GrokBottomBar(
                     items = listOf(
-                        BottomNavItem(Routes.AGENTS, Icons.Filled.SmartToy, "Agents"),
+                        BottomNavItem(Routes.AGENTS, Icons.Filled.ChatBubbleOutline, "Chats"),
                         BottomNavItem(Routes.SETTINGS, Icons.Filled.Settings, "Settings"),
                     ),
                     currentRoute = currentRoute,

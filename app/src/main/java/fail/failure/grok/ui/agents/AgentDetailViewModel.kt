@@ -92,10 +92,33 @@ class AgentDetailViewModel(
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             try {
                 val agent = apiClient.service.getAgent(agentId)
-                _uiState.value = _uiState.value.copy(agent = agent, isLoading = false)
-                agent.latestRunId?.let { startStreaming(it) }
+                val chatMessages = (appContext.applicationContext as? fail.failure.grok.GrokApp)
+                    ?.chatStore?.load(agentId)?.messages.orEmpty()
+                val fromChat = chatMessages.mapNotNull { msg ->
+                    when (msg.role) {
+                        "user" -> TranscriptLine.SystemNote("You: ${msg.content}")
+                        "assistant" -> TranscriptLine.Assistant(msg.content)
+                        else -> null
+                    }
+                }
+                val transcript = when {
+                    fromChat.isNotEmpty() -> fromChat
+                    else -> _uiState.value.transcript
+                }
+                _uiState.value = _uiState.value.copy(
+                    agent = agent,
+                    isLoading = false,
+                    transcript = transcript,
+                    runStatus = agent.status,
+                    currentRunId = agent.latestRunId,
+                )
+                persist()
+                // Only poll status for in-flight turns; completed chats are already hydrated.
+                if (agent.status.equals("RUNNING", ignoreCase = true)) {
+                    agent.latestRunId?.let { fallbackToRunStatus(it, null) }
+                }
             } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(isLoading = false, error = e.friendlyMessage("Failed to load agent"))
+                _uiState.value = _uiState.value.copy(isLoading = false, error = e.friendlyMessage("Failed to load chat"))
             }
         }
     }
@@ -287,8 +310,13 @@ class AgentDetailViewModel(
             _uiState.value = _uiState.value.copy(isFollowUpSending = true)
             try {
                 val response = apiClient.service.createRun(agentId, CreateRunRequest(PromptInput(prompt)))
-                _uiState.value = _uiState.value.copy(isFollowUpSending = false)
-                startStreaming(response.run.id)
+                _uiState.value = _uiState.value.copy(
+                    isFollowUpSending = false,
+                    currentRunId = response.run.id,
+                    runStatus = response.run.status,
+                )
+                // createRun completes synchronously against chat/completions; reload transcript.
+                load()
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isFollowUpSending = false,

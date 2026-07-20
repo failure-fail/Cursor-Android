@@ -33,19 +33,19 @@ private data class OnboardingStep(val emoji: String, val title: String, val desc
 
 private val steps = listOf(
     OnboardingStep(
-        "🚀",
-        "Launch sandboxes from anywhere",
-        "Start a Grok Build cloud sandbox against a repo, right from your phone.",
+        "💬",
+        "Chat with Grok Build",
+        "Start a conversation powered by the same cli-chat-proxy backend the Grok Build CLI uses.",
     ),
     OnboardingStep(
         "🔑",
         "Real Grok Build OAuth",
-        "Sign in with auth.x.ai the same way the Grok Build CLI does — device code + your xAI account.",
+        "Sign in with auth.x.ai the same way the CLI does — device code + your xAI account.",
     ),
     OnboardingStep(
-        "🔔",
-        "Stay in the loop",
-        "Status, notifications, and home-screen widgets so you know when a sandbox needs you.",
+        "📱",
+        "Built for your phone",
+        "Chats stay on-device with live status and home-screen widgets when you need them.",
     ),
 )
 

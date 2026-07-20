@@ -11,50 +11,42 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.rotate
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
-import fail.failure.grok.ui.theme.GrokAccent
-import fail.failure.grok.ui.theme.GrokAccentSecondary
 
-/**
- * A slowly-rotating gradient ring around a solid core - this app's own mark, standing in for a
- * static app icon on the sign-in hero rather than reusing Grok's actual logo asset.
- */
+/** Minimal Grok-style mark: rotating white glyph on black. */
 @Composable
 fun OrbLogo(modifier: Modifier = Modifier) {
     val transition = rememberInfiniteTransition(label = "orbLogo")
     val angle by transition.animateFloat(
         initialValue = 0f,
         targetValue = 360f,
-        animationSpec = infiniteRepeatable(tween(6000, easing = LinearEasing)),
+        animationSpec = infiniteRepeatable(tween(12000, easing = LinearEasing)),
         label = "orbLogoAngle",
     )
 
     Canvas(modifier = modifier.size(72.dp)) {
-        val strokeWidth = 5.dp.toPx()
+        val r = size.minDimension / 2f
+        drawCircle(color = Color(0xFF1A1A1A), radius = r)
         rotate(angle) {
-            drawArc(
-                brush = Brush.sweepGradient(
-                    listOf(
-                        GrokAccent.copy(alpha = 0f),
-                        GrokAccent,
-                        GrokAccentSecondary,
-                        GrokAccent.copy(alpha = 0f),
-                    ),
-                ),
-                startAngle = 0f,
-                sweepAngle = 300f,
-                useCenter = false,
-                style = Stroke(width = strokeWidth),
-            )
+            val path = Path().apply {
+                moveTo(center.x, center.y - r * 0.55f)
+                cubicTo(
+                    center.x + r * 0.55f, center.y - r * 0.15f,
+                    center.x + r * 0.55f, center.y + r * 0.15f,
+                    center.x, center.y + r * 0.55f,
+                )
+                cubicTo(
+                    center.x - r * 0.55f, center.y + r * 0.15f,
+                    center.x - r * 0.55f, center.y - r * 0.15f,
+                    center.x, center.y - r * 0.55f,
+                )
+                close()
+            }
+            drawPath(path, color = Color.White.copy(alpha = 0.92f))
         }
-        drawCircle(
-            brush = Brush.radialGradient(listOf(GrokAccent, GrokAccentSecondary)),
-            radius = size.minDimension / 2f - strokeWidth * 2.2f,
-            center = Offset(size.width / 2f, size.height / 2f),
-        )
+        drawCircle(color = Color.Black, radius = r * 0.18f, center = Offset(center.x, center.y))
     }
 }

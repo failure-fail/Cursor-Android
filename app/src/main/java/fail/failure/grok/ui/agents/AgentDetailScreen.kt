@@ -94,7 +94,7 @@ fun AgentDetailScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(state.agent?.name ?: state.agent?.id ?: "Agent") },
+                title = { Text(state.agent?.name ?: state.agent?.id ?: "Chat") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -131,7 +131,7 @@ fun AgentDetailScreen(
                             },
                         )
                         DropdownMenuItem(
-                            text = { Text("Copy agent ID") },
+                            text = { Text("Copy chat ID") },
                             leadingIcon = { Icon(Icons.Filled.ContentCopy, contentDescription = null) },
                             onClick = {
                                 showMenu = false
@@ -226,8 +226,8 @@ fun AgentDetailScreen(
     if (showDeleteConfirm) {
         AlertDialog(
             onDismissRequest = { showDeleteConfirm = false },
-            title = { Text("Delete agent?") },
-            text = { Text("This permanently removes the agent and its data. This can't be undone.") },
+            title = { Text("Delete chat?") },
+            text = { Text("This permanently removes the chat and its local history. This can't be undone.") },
             confirmButton = {
                 TextButton(
                     onClick = {

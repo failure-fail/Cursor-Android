@@ -76,15 +76,15 @@ fun GlowButton(
             .padding(horizontal = 20.dp),
         contentAlignment = Alignment.Center,
     ) {
-        CompositionLocalProvider(LocalContentColor provides Color.White) {
+        CompositionLocalProvider(LocalContentColor provides Color.Black) {
             if (loading) {
                 CircularProgressIndicator(
-                    color = Color.White,
+                    color = Color.Black,
                     strokeWidth = 2.dp,
                     modifier = Modifier.height(20.dp),
                 )
             } else {
-                Text(text, style = MaterialTheme.typography.titleMedium, color = Color.White)
+                Text(text, style = MaterialTheme.typography.titleMedium, color = Color.Black)
             }
         }
     }

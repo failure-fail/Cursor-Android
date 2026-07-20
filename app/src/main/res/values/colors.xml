@@ -1,14 +1,14 @@
 <resources>
-    <color name="grok_bg">#0B0B0D</color>
-    <color name="grok_surface">#18181B</color>
-    <color name="grok_surface_raised">#222226</color>
-    <color name="grok_accent">#FF6A3D</color>
-    <color name="grok_accent_secondary">#7B5CFF</color>
-    <color name="grok_text_primary">#F5F5F7</color>
-    <color name="grok_text_secondary">#9A9AA2</color>
-    <color name="grok_border">#2A2A2E</color>
-    <color name="grok_success">#00E676</color>
-    <color name="grok_warning">#FFC400</color>
-    <color name="grok_error">#FF3B5C</color>
-    <color name="widget_bg">#18181B</color>
+    <color name="grok_bg">#050505</color>
+    <color name="grok_surface">#111111</color>
+    <color name="grok_surface_raised">#1A1A1A</color>
+    <color name="grok_accent">#F2F2F2</color>
+    <color name="grok_accent_secondary">#8A8A8A</color>
+    <color name="grok_text_primary">#F5F5F5</color>
+    <color name="grok_text_secondary">#9B9B9B</color>
+    <color name="grok_border">#2A2A2A</color>
+    <color name="grok_success">#3DDC97</color>
+    <color name="grok_warning">#E8C547</color>
+    <color name="grok_error">#FF5C5C</color>
+    <color name="widget_bg">#111111</color>
 </resources>
