@@ -10,22 +10,23 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
-// Cursor's own app leans on a near-black surface with a warm rust/amber accent (not blue - an
-// earlier version of this theme guessed wrong) and system-style typography. Verified against
-// cursor.com/mobile's own marketing screenshots: the "Learn more" links and highlighted UI use a
-// muted terracotta, not a blue accent.
+// Cursor's real brand leans on a muted terracotta accent (verified against cursor.com/mobile's
+// marketing screenshots), but this pass deliberately pushes every accent color more saturated and
+// vivid on top of that base hue, per an explicit "super bold colors" request - a near-black
+// surface still anchors it, but nothing on top of that surface is muted anymore.
 val CursorBackground = Color(0xFF0B0B0D)
 val CursorSurface = Color(0xFF18181B)
 val CursorSurfaceRaised = Color(0xFF222226)
-val CursorAccent = Color(0xFFD97757)
+val CursorAccent = Color(0xFFFF6A3D)
+val CursorAccentSecondary = Color(0xFF7B5CFF)
 val CursorTextPrimary = Color(0xFFF5F5F7)
 val CursorTextSecondary = Color(0xFF9A9AA2)
 val CursorBorder = Color(0xFF2A2A2E)
-val CursorSuccess = Color(0xFF3DD68C)
-val CursorWarning = Color(0xFFF5A623)
-val CursorError = Color(0xFFFF6B6B)
-val CursorDiffAdded = Color(0xFF3DD68C)
-val CursorDiffRemoved = Color(0xFFFF6B6B)
+val CursorSuccess = Color(0xFF00E676)
+val CursorWarning = Color(0xFFFFC400)
+val CursorError = Color(0xFFFF3B5C)
+val CursorDiffAdded = Color(0xFF00E676)
+val CursorDiffRemoved = Color(0xFFFF3B5C)
 
 private val CursorColorScheme = darkColorScheme(
     primary = CursorAccent,

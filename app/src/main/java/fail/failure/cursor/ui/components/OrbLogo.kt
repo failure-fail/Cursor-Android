@@ -17,6 +17,7 @@ import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
 import fail.failure.cursor.ui.theme.CursorAccent
+import fail.failure.cursor.ui.theme.CursorAccentSecondary
 
 /**
  * A slowly-rotating gradient ring around a solid core - this app's own mark, standing in for a
@@ -40,7 +41,7 @@ fun OrbLogo(modifier: Modifier = Modifier) {
                     listOf(
                         CursorAccent.copy(alpha = 0f),
                         CursorAccent,
-                        Color(0xFF6E6EF5),
+                        CursorAccentSecondary,
                         CursorAccent.copy(alpha = 0f),
                     ),
                 ),
@@ -51,7 +52,7 @@ fun OrbLogo(modifier: Modifier = Modifier) {
             )
         }
         drawCircle(
-            brush = Brush.radialGradient(listOf(CursorAccent, Color(0xFFB85C3A))),
+            brush = Brush.radialGradient(listOf(CursorAccent, CursorAccentSecondary)),
             radius = size.minDimension / 2f - strokeWidth * 2.2f,
             center = Offset(size.width / 2f, size.height / 2f),
         )

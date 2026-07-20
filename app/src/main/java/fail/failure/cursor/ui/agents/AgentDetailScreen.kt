@@ -45,13 +45,16 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
 import androidx.browser.customtabs.CustomTabsIntent
 import androidx.core.net.toUri
+import fail.failure.cursor.ui.components.GlassCard
 import fail.failure.cursor.ui.components.MarkdownText
 import fail.failure.cursor.ui.components.PillInputBar
 import fail.failure.cursor.ui.components.StatusBadge
 import fail.failure.cursor.ui.components.ThinkingIndicator
 import fail.failure.cursor.ui.theme.CursorAccent
+import fail.failure.cursor.ui.theme.CursorAccentSecondary
 import fail.failure.cursor.ui.theme.CursorSurface
 import fail.failure.cursor.ui.theme.CursorTextSecondary
+import androidx.compose.ui.graphics.Brush
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -188,25 +191,23 @@ fun AgentDetailScreen(
 
 @Composable
 private fun GitInfoCard(prUrl: String?, branch: String?, onOpen: (String) -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp)
-            .background(CursorSurface, RoundedCornerShape(14.dp))
-            .padding(14.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        branch?.let {
-            Text("🌿 $it", style = MaterialTheme.typography.labelSmall, color = CursorTextSecondary)
-        }
-        prUrl?.let { url ->
-            Box(
-                modifier = Modifier
-                    .background(CursorAccent, RoundedCornerShape(50))
-                    .clickable { onOpen(url) }
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-            ) {
-                Text("View PR", color = Color.White, style = MaterialTheme.typography.labelSmall)
+    GlassCard(modifier = Modifier.fillMaxWidth().padding(16.dp), contentPadding = 14.dp) {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            branch?.let {
+                Text("🌿 $it", style = MaterialTheme.typography.labelSmall, color = CursorTextSecondary)
+            }
+            prUrl?.let { url ->
+                Box(
+                    modifier = Modifier
+                        .background(
+                            Brush.horizontalGradient(listOf(CursorAccent, CursorAccentSecondary)),
+                            RoundedCornerShape(50),
+                        )
+                        .clickable { onOpen(url) }
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                ) {
+                    Text("View PR", color = Color.White, style = MaterialTheme.typography.labelSmall)
+                }
             }
         }
     }

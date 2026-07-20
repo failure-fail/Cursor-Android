@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -33,9 +32,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import fail.failure.cursor.auth.AuthRepository
 import fail.failure.cursor.ui.components.AmbientBackground
+import fail.failure.cursor.ui.components.GlassCard
 import fail.failure.cursor.ui.theme.CursorAccent
+import fail.failure.cursor.ui.theme.CursorAccentSecondary
 import fail.failure.cursor.ui.theme.CursorError
-import fail.failure.cursor.ui.theme.CursorSurface
 import fail.failure.cursor.ui.theme.CursorTextSecondary
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -69,43 +69,37 @@ fun SettingsScreen(authRepository: AuthRepository, onSignedOut: () -> Unit) {
             modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(CursorSurface, RoundedCornerShape(18.dp))
-                    .padding(18.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(56.dp)
-                        .background(
-                            Brush.linearGradient(listOf(CursorAccent, Color(0xFFE89A78))),
-                            CircleShape,
-                        ),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(initial.toString(), color = Color.White, style = MaterialTheme.typography.titleLarge)
-                }
-                Spacer(modifier = Modifier.padding(start = 14.dp))
-                Column {
-                    Text(identity, style = MaterialTheme.typography.titleMedium)
-                    Text(
-                        "Signed in with $signInMethod",
-                        color = CursorTextSecondary,
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
+            GlassCard(modifier = Modifier.fillMaxWidth(), contentPadding = 18.dp) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(56.dp)
+                            .background(
+                                Brush.linearGradient(listOf(CursorAccent, CursorAccentSecondary)),
+                                CircleShape,
+                            ),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(initial.toString(), color = Color.White, style = MaterialTheme.typography.titleLarge)
+                    }
+                    Spacer(modifier = Modifier.padding(start = 14.dp))
+                    Column {
+                        Text(identity, style = MaterialTheme.typography.titleMedium)
+                        Text(
+                            "Signed in with $signInMethod",
+                            color = CursorTextSecondary,
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    }
                 }
             }
 
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(CursorSurface, RoundedCornerShape(18.dp)),
-            ) {
-                SettingsRow(label = "Credential type", value = signInMethod)
-                session.userId?.let { SettingsRow(label = "Account ID", value = it) }
-                session.apiKey?.let { SettingsRow(label = "API key", value = "${it.take(10)}••••••") }
+            GlassCard(modifier = Modifier.fillMaxWidth(), contentPadding = 0.dp) {
+                Column {
+                    SettingsRow(label = "Credential type", value = signInMethod)
+                    session.userId?.let { SettingsRow(label = "Account ID", value = it) }
+                    session.apiKey?.let { SettingsRow(label = "API key", value = "${it.take(10)}••••••") }
+                }
             }
 
             Button(

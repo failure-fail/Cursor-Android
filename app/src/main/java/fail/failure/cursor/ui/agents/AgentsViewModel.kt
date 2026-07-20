@@ -91,4 +91,19 @@ class AgentsViewModel(
     fun updateStatusFilter(status: String?) {
         _uiState.value = _uiState.value.copy(statusFilter = status)
     }
+
+    /** Optimistically drops [agentId] from the list (the swipe gesture already animated it away)
+     * and puts it back if the archive call actually fails, rather than waiting on a round trip
+     * before the row disappears. */
+    fun archive(agentId: String) {
+        val previousAgents = _uiState.value.agents
+        _uiState.value = _uiState.value.copy(agents = previousAgents.filterNot { it.id == agentId })
+        viewModelScope.launch {
+            try {
+                apiClient.service.archiveAgent(agentId)
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(agents = previousAgents, error = e.message ?: "Failed to archive")
+            }
+        }
+    }
 }

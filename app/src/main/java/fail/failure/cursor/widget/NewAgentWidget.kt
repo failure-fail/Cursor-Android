@@ -37,7 +37,7 @@ class NewAgentWidget : GlanceAppWidget() {
             Box(
                 modifier = GlanceModifier
                     .fillMaxSize()
-                    .background(Color(0xFFD97757))
+                    .background(Color(0xFFFF6A3D))
                     .clickable(
                         actionStartActivity<MainActivity>(
                             actionParametersOf(WidgetNavigation.DESTINATION_KEY to WidgetNavigation.DESTINATION_NEW_AGENT),

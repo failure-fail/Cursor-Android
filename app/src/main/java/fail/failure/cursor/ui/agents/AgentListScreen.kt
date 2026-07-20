@@ -1,5 +1,6 @@
 package fail.failure.cursor.ui.agents
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,8 +13,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -22,10 +25,13 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -39,6 +45,7 @@ import fail.failure.cursor.ui.components.AgentCardSkeleton
 import fail.failure.cursor.ui.components.AmbientBackground
 import fail.failure.cursor.ui.components.ApiKeyRequiredCard
 import fail.failure.cursor.ui.components.StaggeredItem
+import fail.failure.cursor.ui.theme.CursorError
 import fail.failure.cursor.ui.theme.CursorTextFieldShape
 import fail.failure.cursor.ui.theme.CursorTextSecondary
 import fail.failure.cursor.ui.theme.cursorFilledTextFieldColors
@@ -163,7 +170,9 @@ fun AgentListScreen(
                         ) {
                             itemsIndexed(state.filteredAgents, key = { _, agent -> agent.id }) { index, agent ->
                                 StaggeredItem(index = index) {
-                                    AgentCard(agent = agent, onClick = { onOpenAgent(agent.id) })
+                                    SwipeToArchive(onArchive = { viewModel.archive(agent.id) }) {
+                                        AgentCard(agent = agent, onClick = { onOpenAgent(agent.id) })
+                                    }
                                 }
                             }
                         }
@@ -172,5 +181,37 @@ fun AgentListScreen(
             }
         }
     }
+    }
+}
+
+/** Swipe a row away (either direction) to archive it - a real full-swipe gesture rather than a
+ * hidden menu item, with a torn-red archive icon revealed underneath as you drag. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SwipeToArchive(onArchive: () -> Unit, content: @Composable () -> Unit) {
+    val dismissState = rememberSwipeToDismissBoxState(
+        confirmValueChange = { value ->
+            if (value != SwipeToDismissBoxValue.Settled) onArchive()
+            true
+        },
+    )
+    SwipeToDismissBox(
+        state = dismissState,
+        backgroundContent = {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(CursorError.copy(alpha = 0.85f), RoundedCornerShape(14.dp))
+                    .padding(horizontal = 20.dp),
+                contentAlignment = when (dismissState.dismissDirection) {
+                    SwipeToDismissBoxValue.EndToStart -> Alignment.CenterEnd
+                    else -> Alignment.CenterStart
+                },
+            ) {
+                Icon(Icons.Filled.Archive, contentDescription = "Archive", tint = Color.White)
+            }
+        },
+    ) {
+        content()
     }
 }

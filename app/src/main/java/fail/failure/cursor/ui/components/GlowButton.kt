@@ -28,6 +28,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import fail.failure.cursor.ui.theme.CursorAccent
+import fail.failure.cursor.ui.theme.CursorAccentSecondary
 
 /**
  * The app's primary-CTA look: a gradient pill that compresses slightly under a finger via a
@@ -53,7 +54,7 @@ fun GlowButton(
 
     val gradient = Brush.horizontalGradient(
         colors = if (enabled) {
-            listOf(CursorAccent, Color(0xFFE89A78))
+            listOf(CursorAccent, CursorAccentSecondary)
         } else {
             listOf(CursorAccent.copy(alpha = 0.35f), CursorAccent.copy(alpha = 0.35f))
         },
