@@ -19,7 +19,19 @@ data class AgentsUiState(
     val needsApiKey: Boolean = false,
     val apiKeyError: String? = null,
     val error: String? = null,
-)
+    val searchQuery: String = "",
+    /** Lowercase status, or null for "All". */
+    val statusFilter: String? = null,
+) {
+    val filteredAgents: List<Agent>
+        get() = agents.filter { agent ->
+            val matchesQuery = searchQuery.isBlank() ||
+                (agent.name ?: agent.id).contains(searchQuery, ignoreCase = true) ||
+                agent.repos?.firstOrNull()?.url?.contains(searchQuery, ignoreCase = true) == true
+            val matchesStatus = statusFilter == null || agent.status?.lowercase() == statusFilter
+            matchesQuery && matchesStatus
+        }
+}
 
 class AgentsViewModel(
     private val apiClient: ApiClient,
@@ -44,7 +56,11 @@ class AgentsViewModel(
             )
             try {
                 val response = apiClient.service.listAgents()
-                _uiState.value = AgentsUiState(agents = response.agents, isLoading = false, isRefreshing = false)
+                _uiState.value = _uiState.value.copy(
+                    agents = response.agents,
+                    isLoading = false,
+                    isRefreshing = false,
+                )
             } catch (e: Exception) {
                 val unauthorized = e.isUnauthorized()
                 val triedAKey = !authRepository.session.value.apiKey.isNullOrBlank()
@@ -66,5 +82,13 @@ class AgentsViewModel(
     fun signInWithApiKey(apiKey: String) {
         authRepository.signInWithApiKey(apiKey)
         refresh()
+    }
+
+    fun updateSearchQuery(query: String) {
+        _uiState.value = _uiState.value.copy(searchQuery = query)
+    }
+
+    fun updateStatusFilter(status: String?) {
+        _uiState.value = _uiState.value.copy(statusFilter = status)
     }
 }

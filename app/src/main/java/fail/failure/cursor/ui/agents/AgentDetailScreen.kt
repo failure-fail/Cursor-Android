@@ -45,6 +45,7 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
 import androidx.browser.customtabs.CustomTabsIntent
 import androidx.core.net.toUri
+import fail.failure.cursor.ui.components.MarkdownText
 import fail.failure.cursor.ui.components.PillInputBar
 import fail.failure.cursor.ui.components.StatusBadge
 import fail.failure.cursor.ui.components.ThinkingIndicator
@@ -217,11 +218,11 @@ private fun TranscriptLineView(line: TranscriptLine) {
         is TranscriptLine.Assistant -> BubbleText(line.text, CursorSurface)
         is TranscriptLine.Thinking -> Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             ThinkingIndicator()
-            Text(
-                line.text,
-                color = CursorTextSecondary,
-                style = MaterialTheme.typography.bodyMedium,
-            )
+            androidx.compose.runtime.CompositionLocalProvider(
+                androidx.compose.material3.LocalContentColor provides CursorTextSecondary,
+            ) {
+                MarkdownText(line.text)
+            }
         }
         is TranscriptLine.Tool -> Text(
             "🔧 ${line.name} — ${line.status}",
@@ -244,6 +245,6 @@ private fun BubbleText(text: String, background: Color) {
             .background(background, RoundedCornerShape(12.dp))
             .padding(12.dp),
     ) {
-        Text(text, style = MaterialTheme.typography.bodyLarge)
+        MarkdownText(text)
     }
 }

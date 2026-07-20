@@ -4,12 +4,22 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.SmartToy
+import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import fail.failure.cursor.CursorApp
 import fail.failure.cursor.ui.agents.AgentDetailScreen
@@ -23,6 +33,8 @@ import fail.failure.cursor.ui.agents.NewAgentViewModel
 import fail.failure.cursor.ui.auth.AuthViewModel
 import fail.failure.cursor.ui.auth.LoginScreen
 import fail.failure.cursor.ui.auth.OnboardingScreen
+import fail.failure.cursor.ui.components.BottomNavItem
+import fail.failure.cursor.ui.components.CursorBottomBar
 import fail.failure.cursor.ui.settings.SettingsScreen
 
 private object Routes {
@@ -55,9 +67,37 @@ fun CursorNavHost(app: CursorApp, requestedDestination: String? = null) {
         }
     }
 
+    val backStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = backStackEntry?.destination?.route
+    val showBottomBar = currentRoute == Routes.AGENTS || currentRoute == Routes.SETTINGS
+
+    Scaffold(
+        containerColor = Color.Transparent,
+        bottomBar = {
+            if (showBottomBar) {
+                CursorBottomBar(
+                    items = listOf(
+                        BottomNavItem(Routes.AGENTS, Icons.Filled.SmartToy, "Agents"),
+                        BottomNavItem(Routes.SETTINGS, Icons.Filled.Settings, "Settings"),
+                    ),
+                    currentRoute = currentRoute,
+                    onSelect = { route ->
+                        if (route != currentRoute) {
+                            navController.navigate(route) {
+                                popUpTo(Routes.AGENTS) { saveState = true }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        }
+                    },
+                )
+            }
+        },
+    ) { scaffoldPadding ->
     NavHost(
         navController = navController,
         startDestination = startDestination,
+        modifier = Modifier.padding(bottom = if (showBottomBar) scaffoldPadding.calculateBottomPadding() else 0.dp),
         enterTransition = { slideInHorizontally(initialOffsetX = { it / 4 }) + fadeIn() },
         exitTransition = { fadeOut() },
         popEnterTransition = { fadeIn() },
@@ -93,7 +133,6 @@ fun CursorNavHost(app: CursorApp, requestedDestination: String? = null) {
                 viewModel = agentsViewModel,
                 onOpenAgent = { navController.navigate(Routes.agentDetail(it)) },
                 onNewAgent = { navController.navigate(Routes.NEW_AGENT) },
-                onOpenSettings = { navController.navigate(Routes.SETTINGS) },
             )
         }
 
@@ -135,7 +174,6 @@ fun CursorNavHost(app: CursorApp, requestedDestination: String? = null) {
         composable(Routes.SETTINGS) {
             SettingsScreen(
                 authRepository = app.authRepository,
-                onBack = { navController.popBackStack() },
                 onSignedOut = {
                     navController.navigate(Routes.LOGIN) {
                         popUpTo(0)
@@ -143,5 +181,6 @@ fun CursorNavHost(app: CursorApp, requestedDestination: String? = null) {
                 },
             )
         }
+    }
     }
 }
